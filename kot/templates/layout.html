@@ -1,0 +1,64 @@
+<!doctype html>
+<title>My homepage</title>
+
+<script type=text/javascript src="{{ url_for('static', filename='js/jquery-1.7.2.js') }}">
+</script>
+
+<script type=text/javascript src="{{ url_for('static', filename='js/jquery-ui-1.8.22.custom.min.js') }}">
+</script>
+<script type=text/javascript src="{{ url_for('static', filename='js/jquery.ui.resizable.snap.ext.v1.7.min.js') }}">
+</script>
+
+<script type=text/javascript src="{{ url_for('static', filename='js/bootstrap.js') }}">
+</script>
+
+<script type=text/javascript src="{{ url_for('static', filename='js/bootstrap-button.js') }}">
+</script>
+
+<script type=text/javascript src="{{ url_for('static', filename='js/bootstrap-modal.js') }}">
+</script>
+
+<script type=text/javascript>
+    var script_root = {{ request.script_root|tojson|safe }};
+    {% if session.logged_in %}
+    var uid = {{ session['uid'] }};
+    {% else %}
+    var uid = -1;
+    {% endif %}
+
+    {% if session.logged_in %}
+    var uname = '{{ session['uname'] }}';
+    {% else %}
+    var uname = 'Anonymous user';
+    {% endif %}
+</script>
+
+<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.1/themes/base/jquery-ui.css"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.css') }}" >
+<link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}" >
+
+{% block header %}{% endblock %}
+
+<div class=page>
+    <div class=container id=container>
+        <div class=menu>
+            {% if not session.logged_in %}
+            <a href="{{ url_for('login', next='None') }}">Login</a>
+            {% else %}
+            <a href="{{ url_for('account') }}">Account</a>
+            <a href="{{ url_for('calendar') }}">Calendar</a>
+            <a href="{{ url_for('add_user') }}">Add user</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+            {% endif %}
+        </div>
+
+        {% for category, message in get_flashed_messages(with_categories=true) %}
+        <div class='alert alert-{{ category}}'>
+            <a class="close" data-dismiss="alert" href="#">×</a>
+            {{ message }}
+        </div>
+        {% endfor %}
+
+        {% block body %}{% endblock %}
+    </div>
+</div>

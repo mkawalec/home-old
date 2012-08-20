@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+
+{% block header %}
+<script type=text/javascript src="{{ url_for('static', filename='js/helpers.js') }}"></script>
+<script type=text/javascript src="{{ url_for('static', filename='js/piles.js') }}"></script>
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/piles.css') }}" />
+<script type=text/javascript>
+    var piles = {{ piles|tojson|safe }}
+</script>
+{% endblock %}
+

@@ -1,0 +1,36 @@
+.header {
+    border-bottom: 1px dashed black;
+    font-size: 1.5em;
+    line-height: 1.5em;
+    font-style: italic;
+    width: 100%;
+}
+
+.body {
+    position:relative;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.colour_body {
+    float: left;
+    border: 1px solid white;
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+    margin-top: 10px;
+    position: relative;
+    z-index: 1;
+}
+
+.selection_marker {
+    width: 42px;
+    height: 42px;
+    position: absolute;
+    background-color: black;
+    z-index: 0;
+}
+
+input {
+    width: 100%;
+}

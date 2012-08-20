@@ -1,0 +1,243 @@
+#status_box         { 
+    float: left; 
+    width: 200px;
+    font-size: 1.2em;
+    font-style:italic;
+}
+
+#buttons_holder     { 
+    float: right; 
+    width: 200px;
+}
+
+#calendar_display   { 
+    width: 100%; 
+    margin-top: 50px;
+    height: 550px;
+    position: relative;
+    overflow: hidden;
+}
+
+.month-day          {
+    background-color: #EEEEEE;
+    border: 1px solid #DDDDDD;
+    overflow: hidden;
+}
+
+.month-day.clicked {
+    background-color: #DDDDDD;
+}
+
+.month-day.today {
+    background-color: #BBBBBB;
+}
+
+.day-inactive .month-day-header {
+    color: #999999;
+}
+
+.month-day-header   {
+    background-color: #DDDDDD;
+    opacity: 0.8;
+    text-align: left;
+    padding: 0 2px;
+    text-size: 1em;
+}
+
+div.btn-group       { 
+    width: auto;
+    float: left;
+}
+
+#day_holder         {
+    width: 100%;
+    position: relative;
+}
+
+.hour_row           {
+    width: 100px;
+    position: absolute;
+    border: 1px solid #DDDDDD;
+    background-color: #EEEEEE;
+    position: relative;
+    overflow: visible;
+}
+
+.hour_row_label     {
+    width: 60px;
+    background-color: #DDDDDD;
+    border-bottom: 1px solid #EEEEEE;
+    position: relative;
+    z-index: 5;
+    padding-left: 2px;
+}
+
+.half_hour_line     {
+    position: absolute;
+    left: 0; top: 0;
+    z-index: 1;
+    border-bottom: 1px dashed #DDDDDD;
+    width: 100%;
+}
+
+.line_of_now        {
+    position: absolute;
+    z-index: 2;
+    width: 100%;
+    border-bottom: 1px solid #FF2222;
+}
+
+.line_of_now .time_holder {
+    color: #FF2222;
+    position: absolute;
+    right: 5px;
+    bottom: 0px;
+}
+
+.event {
+    background-color: #4986E7;
+    border: 1px solid #2C70D1;
+    z-index: 30;
+    opacity: 0.8;
+    position: relative;
+}
+
+.event_header {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    color: black;
+    opacity: 1;
+}
+
+.header_time {
+    float: left;
+    width: 100%;
+    font-style: italic;
+    font-size: 1em;
+    color: #333333;
+}
+
+.header_name {
+    float: left;
+    font-size: 1.2em;
+}
+
+.event_QR {
+    float: left;
+    width: 305px;
+    height: 305px;
+}
+
+.event_QR_canvas {
+    width: 305px;
+    height: 305px;
+}
+
+.event_owner {
+    float: right;
+    width: 160px;
+}
+
+.event_time {
+    float: right;
+    width: 200px;
+}
+
+.event_location {
+    float: right;
+    width: 200px;
+}
+
+textarea.edit-field {
+    width: 200px;
+    margin-top: 5px;
+}
+
+.event_description {
+    float: right;
+    width: 200px;
+}
+
+.event_att {
+    float: right;
+    width: 200px;
+}
+
+.event_joinable {
+    float: right;
+    width: 200px;
+}
+
+.details_header {
+    font-style: italic;
+    float: left;
+}
+
+.details_body {
+    float: right;
+    width: 120px;
+    display: block;
+    text-align: right;
+}
+
+.event_name {
+    float: left;
+    width: 300px;
+    overflow: hidden;
+    font-size: 1.5em;
+}
+
+.modal-body {
+    width: 530px;
+}
+
+.details_elem {
+    margin-bottom: 5px;
+}
+
+.btn-location {
+    float: right;
+}
+
+.btn-att {
+    margin-right: 2px;
+    margin-bottom: 2px;
+    float: left;
+}
+
+.spacer {
+    color: #333333;
+    margin-left: 2px;
+    float: left;
+}
+
+.attendant_name {
+    float: left;
+}
+
+.month_event {
+    float: left;
+    margin: 1px;
+    border: 1px solid #2C70D1;
+    background-color: #4986E7;
+
+    font-size: 0.8em;
+    width: 95%;
+    height: 17px;
+    display: block;
+}
+
+.month_event_header {
+    float: left;
+    font-style: italic;
+    margin-right: 5px;
+}
+
+.month_event_body {
+    float: left;
+    width: 70%;
+    height: 17px;
+    overflow: hidden;
+    white-space: nowrap;
+}

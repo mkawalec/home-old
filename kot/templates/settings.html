@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+
+{% block header %}
+<script type=text/javascript src="{{ url_for('static', filename='js/helpers.js') }}"></script>
+<script type=text/javascript src="{{ url_for('static', filename='js/settings.js') }}"></script>
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/settings.css') }}"/>
+<script type=text/javascript>
+    var colours = {{ colours|tojson|safe }};
+    var current_colour = {{ current }};
+</script>
+{% endblock %}
+
+{% block body %}
+<h1>Settings</h1>
+<div id=settings_holder></div>
+{% endblock %}

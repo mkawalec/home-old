@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+
+{% block header %}
+<!-- The following holds events to be used by the calendar -->
+<script type=text/javascript>
+    var events = [
+    {% for event in events %}
+        {
+            'date': new Date({{ event.date.year }},{{ event.date.month-1 }},{{ event.date.day }},{{ event.date.hour }},{{ event.date.minute}},{{ event.date.second}},{{ event.date.microsecond}}),
+            'location': '{{ event.location.decode('utf-8') }}',
+            'duration': {{ event.duration }},
+            'name': '{{ event.name.decode('utf-8') }}',
+            'description': '{{ event.description.decode('utf-8') }}',
+            'attendees': [{% for att in event.attendees %} [{{ att.id }}, '{{ att.uname.decode('utf-8') }}'], {% endfor %}],
+            'owner': [{{ event.owner.id }}, '{{ event.owner.uname.decode('utf-8') }}'],
+            'id': {{ event.id }}
+        },
+    {% endfor %}
+    ];
+</script>
+
+<link rel=stylesheet href="{{ url_for('static', filename='css/cal.css') }}">
+<script type=text/javascript src="{{ url_for('static', filename='js/cal.js') }}">
+</script>
+{% endblock %}
+
+{% block body %}
+<div id=calendar_holder></div>
+{% endblock %}
