@@ -1,0 +1,11 @@
+.flash              { background-color: #B2E7ED; padding: 5px; margin-top: 10px;}
+
+#calendar_holder    { width: 100%; height: 600px; float: right; margin-top: 50px;}
+
+.menu               { width: 100%; padding: 5px; line-height: 1.4em; height: 20px;}
+.menu a { 
+    font-size: 1.4em; 
+    line-height: 1.4em; 
+    margin-right: 10px; 
+    float: left;
+}
