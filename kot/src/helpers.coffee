@@ -52,3 +52,40 @@ hex = (x) ->
     return if isNaN(x) then "00" else hexDigits[(x - x % 16) / 16] + hexDigits[x % 16]
 
 hexDigits = new Array("0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f")
+
+# Choose a minimum of a two numbers
+min = (first, second) ->
+    if first < second
+        return first
+    return second
+
+# Choose a max of a two numbers
+max = (first, second) ->
+    if first > second
+        return first
+    return second
+
+rgb2hsv = (hex) ->
+    red = hex_to_decimal hex.substr 1,2
+    green = hex_to_decimal hex.substr 3,2
+    blue = hex_to_decimal hex.substr 5,2
+    hue = 0; sat = 0; f = 0; i = 0
+
+    x = min (min red, green), blue
+    val = max (max red, green), blue
+
+    if x != val
+        if red == x
+            f = green-blue
+            i = 3
+        else
+            if green == x
+                f = blue-red
+                i = 5
+            else
+                f = red-green
+                i = 1
+        hue = ((i-f/(val-x))*60)%360
+        sat = (val-x)/val
+    return [hue,sat,val]
+

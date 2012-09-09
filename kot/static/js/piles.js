@@ -3,7 +3,7 @@
 Copyright Michal Kawalec, 2012
 */
 
-var bind_search_area, bootstrap, create_delete, drag_stopped, dragging, globals, json_sync_piles, name, over_selector, remove_delete, remove_object, set_searched_users, setup_pile_members, setup_search, setup_structure, test;
+var bind_search_area, bootstrap, create_delete, drag_stopped, dragging, get_user_style, globals, json_sync_piles, name, over_selector, remove_delete, remove_object, set_searched_users, setup_pile_members, setup_search, setup_structure, test;
 
 this.pile_height = 250;
 
@@ -28,6 +28,8 @@ setup_pile_members = function() {
       $(pile_member).text(member.member);
       $(pile_member).attr('data-id', member.member);
       pile_members.appendChild(pile_member);
+      console.log($(pile_member).attr('style'));
+      get_user_style(member.member);
     }
   }
   return $('.pile_member').draggable({
@@ -42,6 +44,33 @@ setup_pile_members = function() {
       return drag_stopped(e, ui, this);
     },
     containment: "parent"
+  });
+};
+
+get_user_style = function(id) {
+  return $.ajax({
+    url: script_root + '_pile_get',
+    type: 'POST',
+    dataType: 'json',
+    data: {
+      id: id
+    },
+    success: function(data) {
+      var img, pile_member, style;
+      pile_member = $("[data-id=" + data.id + "].pile_member")[0];
+      if (data.status) {
+        img = document.createElement('img');
+        $(img).attr('class', 'thumb');
+        img.src = 'data:' + data.mimetype + ';base64,' + data.file;
+        pile_member.appendChild(img);
+      }
+      console.log(pile_member);
+      style = $(pile_member).attr('style');
+      return $(pile_member).attr('style', style + 'background-color:' + data.colour + ';border-color:' + data.border);
+    },
+    error: function(data) {
+      return status_notify(pile_member, 'error');
+    }
   });
 };
 
@@ -136,16 +165,13 @@ bind_search_area = function() {
   return $('#search_field').bind('keyup', function(event) {
     var date;
     date = new Date();
-    window.lastpress = date.getTime();
-    console.log(window.lastpress);
-    return console.log('up ' + date.getTime());
+    return window.lastpress = date.getTime();
   });
 };
 
 window.poll_keypress = function() {
   var date, _ref;
   date = new Date();
-  console.log(window.lastpress);
   if ((500 < (_ref = date.getTime() - window.lastpress) && _ref < 1001)) {
     $.ajax({
       url: script_root + '/_get_users',
@@ -191,6 +217,7 @@ set_searched_users = function(data) {
       $(pile_member).attr('class', 'pile_member');
       $(pile_member).attr('data-id', user.id);
       $(pile_member).text(user.id);
+      get_user_style(user.id);
       _ref2 = get_offsets(user_holder), holder_left = _ref2[0], holder_top = _ref2[1];
       holder_top += 4;
       holder_left += 5;
@@ -243,7 +270,6 @@ drag_stopped = function(e, ui, obj) {
     json_sync_piles($(obj).attr('data-id'), -1);
   } else if (over_selector(obj, '.pile')) {
     over = over_selector(obj, '.pile');
-    console.log(over);
     json_sync_piles($(obj).attr('data-id'), $(over).attr('data-id'));
   }
   return 0;
@@ -286,9 +312,7 @@ json_sync_piles = function(object_id, over_id) {
 
 remove_object = function(object_id) {
   var object;
-  console.log('exploding ' + object_id);
   object = $('.pile_member[data-id=' + object_id + ']')[0];
-  console.log(object);
   $(object).hide("explode", 1000);
   return 1;
 };

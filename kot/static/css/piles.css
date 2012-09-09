@@ -35,6 +35,13 @@
     border: 1px solid black;
 }
 
+.pile_member img {
+    max-width: 40px;
+    max-height: 40px;
+    position:absolute;
+    left:0;top:0;
+}
+
 .delete_area {
     position: absolute;
     top: 250px;

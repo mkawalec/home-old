@@ -34,3 +34,45 @@
 input {
     width: 100%;
 }
+
+#avatar_thumbnail {
+    width: 210px;
+    height: 210px;
+    border: 1px dashed black;
+    margin-right: 10px;
+    float: left;
+}
+
+#avatar_thumbnail img {
+    max-width: 200px;
+    max-height: 200px;
+    vertical-align: center;
+}
+
+.thumb {
+    margin-left: 5px;
+    margin-top: 5px;
+}
+
+#send_button {
+    margin-top: 5px;
+}
+
+#file_dropbox {
+    width: 378px;
+    height: 200px;
+    border: 1px dashed black;
+    margin-top: 10px;
+
+    float: left;
+    position: relative;
+}
+
+#dropbox_label {
+    position: absolute;
+    width: 378px;
+    left: 0px; top: 82px;
+    opacity: 0.4;
+    text-align: center;
+}
+

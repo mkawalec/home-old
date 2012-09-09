@@ -17,6 +17,17 @@ from base64 import b64encode
 
 from datetime import timedelta, datetime
 
+from cStringIO import StringIO
+
+import re
+
+from PIL import Image
+
+from glob import glob
+import os
+
+import mimetypes
+
 
 SECRET_KEY = 'adsdfnjw4rwd332'
 SALT = 'sdfj323rf'
@@ -78,6 +89,32 @@ def exists_in(obj, obj_set, column):
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+# Returns the x and y size of an image will have after keeping the aspect
+# ratio
+def get_size(bb):
+    width = bb[2]-bb[0]
+    height = bb[3]-bb[1]
+    mult = 1
+    if width > height:
+        mult = 40/width
+    else: 
+        mult = 40/height
+    return (int(width*mult), int(height*mult))
+
+## Sends to the client a StringIO object not analysing
+## its contents in any way - it will be base64
+## encoded before sending
+def send_base64(what):
+    what.seek(0)
+    ret = b64encode(what.getvalue())
+    
+    headers = {}
+    headers['Content-Type'] = 'application/base64'
+    
+    return Response(ret,headers=headers, mimetype='application/base64', 
+            direct_passthrough=True, status='200 OK')
+
 
 # TODO - this should differentiate between standard and ajax function
 def login_required(f):
@@ -200,6 +237,90 @@ def settings():
             [session['uid']], one=True)['colour']
     return render_template('settings.html', colours=colours, current=current)
 
+# Get the current avatar image
+@app.route('/_avatar_get', methods=['POST'])
+@login_required
+def get_avatar():
+    has_avatar = query_db('SELECT has_thumbnail FROM users WHERE id=%s',
+            [session['uid']], one=True)['has_thumbnail']
+    if has_avatar:
+        filename = query_db('SELECT avatar FROM users WHERE id=%s',
+                            [session['uid']],one=True)['avatar']
+        if not filename:
+            return jsonify({'status': False})
+
+        avatar = open(filename)
+        (mimetype, enc) = mimetypes.guess_type(filename)
+
+        avatar = b64encode(avatar.read())
+        return jsonify({'file':avatar,'status': True, 'mimetype':mimetype})
+    return jsonify({'status': False})
+
+# Get all the data needed for a pile member display
+@app.route('/_pile_get', methods=['POST'])
+@login_required
+def get_pile():
+    has_avatar = query_db('SELECT has_thumbnail FROM users WHERE id=%s',
+            [session['uid']], one=True)['has_thumbnail']
+    avatar = None
+    mimetype = None
+    status = True
+
+    if has_avatar:
+        filename = query_db('SELECT avatar_thumb FROM users WHERE id=%s',
+                        [request.form['id']],one=True)['avatar_thumb']
+        if filename:
+            avatar = open(filename)
+            (mimetype, enc) = mimetypes.guess_type(filename)
+
+            avatar = b64encode(avatar.read())
+
+    colour = query_db('SELECT c.colour,c.border FROM colours c,users u '
+                      'WHERE u.id=%s AND u.colour=c.id',
+                      [request.form['id']], one=True)
+    if not avatar:
+        status = False
+    return jsonify({'file':avatar, 'status':status,'mimetype':mimetype,
+                    'colour':colour['colour'],'border':colour['border'],
+                    'id':request.form['id']})
+
+# Update avatar
+@app.route('/_avatar_save', methods=['POST'])
+@login_required
+def save_avatar():
+    avatar = request.files['avatar']
+    extension = re.search('\..*', str(avatar.filename)).group(0)
+    filename = 'static/avatars/' + str(session['uid']) 
+    avatar.save(filename + extension)
+
+    # Generate a thumbnail
+    avatar = Image.open(filename + extension)
+    avatar = avatar.resize(get_size(avatar.getbbox()))
+    avatar.save(filename + '-thumb' + extension)
+    
+    ret = query_db('UPDATE users SET has_thumbnail=TRUE,avatar=%s,avatar_thumb=%s '
+                   'WHERE id=%s',
+                   [filename+extension, 
+                    filename+'-thumb'+extension,
+                    session['uid']])
+
+    return jsonify(result=ret)
+
+# Delete user's avatar
+@app.route('/_avatar_delete', methods=['POST'])
+@login_required
+def delete_avatar():
+    ret = True
+    has_avatar = query_db('SELECT has_thumbnail FROM users WHERE id=%s',
+            [session['uid']], one=True)['has_thumbnail']
+    if has_avatar:
+        for avatar in glob('static/avatars/'+str(session['uid'])+'.*'):
+            os.remove(avatar)
+
+        ret = query_db('UPDATE users SET has_thumbnail=FALSE WHERE id=%s',
+                [session['uid']])
+
+    return jsonify(result=ret)
 
 # Saves colours
 @app.route('/_colour_save', methods=['POST'])
@@ -256,19 +377,6 @@ def search_for_users():
                    'ORDER BY in_pile ASC LIMIT 7',
                    [session['uid'], request.args.get('query', '')])
     return jsonify(result=ret)
-
-## Sends to the client a StringIO object not analysing
-## its contents in any way - it will be base64
-## encoded before sending
-def send_base64(what):
-    what.seek(0)
-    ret = b64encode(what.getvalue())
-    
-    headers = {}
-    headers['Content-Type'] = 'application/base64'
-    
-    return Response(ret,headers=headers, mimetype='application/base64', 
-            direct_passthrough=True, status='200 OK')
 
 @app.route('/_get_event_qr')
 def event_qr():

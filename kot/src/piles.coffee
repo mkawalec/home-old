@@ -26,9 +26,13 @@ setup_pile_members = () ->
             $(pile_member).text member.member
             $(pile_member).attr 'data-id', member.member
             pile_members.appendChild pile_member
+            console.log $(pile_member).attr 'style'
+
+            # Now get the member background image from the server
+            get_user_style member.member
     
     # Make each of the pile_members draggable
-    $('.pile_member').draggable { 
+    $('.pile_member').draggable {
         start: () ->
             create_delete()
         drag: () ->
@@ -38,6 +42,31 @@ setup_pile_members = () ->
             drag_stopped(e, ui, this)
         containment: "parent"
     }
+
+# Gets user picture and colours from the server
+get_user_style = (id) ->
+    $.ajax {
+        url: script_root + '_pile_get'
+        type: 'POST'
+        dataType: 'json'
+        data:
+            id: id
+        success: (data) ->
+            pile_member = $("[data-id=#{data.id}].pile_member")[0]
+            if data.status
+                img = document.createElement 'img'
+                $(img).attr 'class', 'thumb'
+                img.src = 'data:'+data.mimetype+';base64,'+data.file
+                pile_member.appendChild img
+
+            console.log pile_member
+            style = $(pile_member).attr 'style'
+            $(pile_member).attr 'style', style+'background-color:'+data.colour+
+                                         ';border-color:'+data.border
+        error: (data) ->
+            status_notify pile_member, 'error'
+    }
+
 
 # Creates a 'virtual pile' used for dropping users there and deleting 
 # them from our piles
@@ -136,12 +165,9 @@ bind_search_area = () ->
     $('#search_field').bind 'keyup', (event) ->
         date = new Date()
         window.lastpress = date.getTime()
-        console.log window.lastpress
-        console.log 'up ' + date.getTime()
 
 window.poll_keypress = () ->
     date = new Date()
-    console.log (window.lastpress)
     if 500 < (date.getTime() - window.lastpress) < 1001
         $.ajax {
             url: script_root + '/_get_users'
@@ -189,6 +215,8 @@ set_searched_users = (data) ->
             $(pile_member).attr 'class', 'pile_member'
             $(pile_member).attr 'data-id', user.id
             $(pile_member).text user.id
+
+            get_user_style user.id
 
             # Setting the proper absolute position
             [holder_left, holder_top] = get_offsets user_holder
@@ -238,7 +266,6 @@ drag_stopped = (e, ui, obj) ->
         json_sync_piles ($(obj).attr 'data-id'), -1
     else if over_selector obj, '.pile'
         over = over_selector(obj, '.pile')
-        console.log over
         json_sync_piles ($(obj).attr 'data-id'), $(over).attr 'data-id'
     return 0
 
@@ -279,9 +306,7 @@ json_sync_piles = (object_id, over_id) ->
 
 # The object was succesfully removed so delete it from the view
 remove_object = (object_id) ->
-    console.log 'exploding ' + object_id
     object = $('.pile_member[data-id='+object_id+']')[0]
-    console.log object
     $(object).hide "explode", 1000
     return 1
 
