@@ -256,6 +256,15 @@ var calendar = {
             events = ret;
         },
 
+        // Gets an event iterator with a given id inside of it
+        get_event_iter: function(event_id){
+            for(var i in events){
+                if(events[i]['id'] == event_id)
+                    return i;
+            }
+            return -1;
+        },
+
         // Makes an async request to the server and saves event details
         json_event_save: function(event_id){
             $.ajax({
@@ -271,9 +280,64 @@ var calendar = {
                     duration: events[event_id]['duration']
                 },
                 success: function(data){
+                    // update the QR code
+                    calendar.get_QR_code(events[event_id]['id']);
                 }
             });
         },
+
+        // Creates the event on the server
+        json_create_event: function(event){
+            $.ajax({
+                url: script_root + '_event_create',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    name: event['name'],
+                    location: event['location'],
+                    description: event['description'],
+                    date: event['date'].toISOString(),
+                    duration: event['duration']
+                },
+                success: function(data){
+                    var iter = calendar.helpers.find_event(data.name,data.location,data.description,
+                                                       data.date,data.duration);
+                    if(iter == -1)
+                        console.log('lol, weird error');
+                    
+                    events[iter]['id'] = data.event_id;
+
+                    // Refresh the view
+                    //calendar.helpers.sort_events();
+                    calendar.draw_events_day();
+                }
+            });
+        },
+
+        // Removes an event with a given id from the events array
+        remove_event: function(event_id){
+            for(var i in events){
+                if(events[i]['id'] == event_id){
+                    events.splice(i,1);
+                    calendar.draw_events_day();
+                    break;
+                }
+            }
+        },
+
+        // Returns the iterator for the event that satisfies given constraints
+        find_event: function(name,location,desc,date,duration){
+            for(var i in events){
+                if(events[i]['name'] == name && 
+                   events[i]['location'] == location &&
+                   events[i]['description'] == desc &&
+                   events[i]['date'].toISOString() == date &&
+                   events[i]['duration'] == duration)
+                       return i;
+            }
+            return -1;
+        },
+
 
         // Corrects the datetime for the timezone.
         // It is a rather stupid function, as it will break
@@ -616,14 +680,15 @@ var calendar = {
                     new_event['owner'] = [uid, uname];
                     new_event['max_attendees'] = 100;
                     new_event['joinable'] = true;
-
+                    new_event['colour'] = user_colour;
+                    new_event['border'] = user_border;
+                    
                     events.push(new_event);
-                    calendar.draw_day();
-
-                    calendar.helpers.sort_events();
+                    //calendar.helpers.sort_events();
                     calendar.draw_day();
 
                     // Now, IMPLEMENT syncing with the server
+                    calendar.helpers.json_create_event(new_event)
                 }
             }
         });
@@ -684,6 +749,8 @@ var calendar = {
 
                         var event = document.createElement('div');
                         $(event).attr('class', 'month_event');
+                        $(event).attr('style', 'border-color:'+events[i]['border']+
+                                               ';background-color:'+events[i]['colour']);
                         var event_header = document.createElement('div');
                         $(event_header).attr('class', 'month_event_header');
                         var event_body = document.createElement('div');
@@ -700,10 +767,16 @@ var calendar = {
     },
 
     // Adds existing events to the day view
-    draw_events_day: function(){
+    draw_events_day: function(not_recreate_details){
         // Remove the old junk
         $('.event').each(function(iter, obj){
-            document.getElementById('day_holder').removeChild(obj);
+            var day_holder = $('#day_holder')[0];
+            
+            // Sometimes the loop gives us an nonexisting object to remove
+            // This is bad and we need to protect against it
+            if(day_holder.children.length > 24){
+                day_holder.removeChild(obj);
+            }
         });
 
         for(var i in events){
@@ -729,8 +802,9 @@ var calendar = {
 
                         // Now create the div representing the event
                         var event_div   = document.createElement('div');
+                        var event_id    = events[i]['id']
                         $(event_div).attr('class', 'event');
-                        $(event_div).attr('id', 'event_' + i);
+                        $(event_div).attr('id', 'event_' + event_id);
 
                         var event_height;
                         if(events[i]['duration'] < 30) 
@@ -750,7 +824,9 @@ var calendar = {
                                 'left:' + event_left +
                                 'px;top:' + (event_offset_top) + 
                                 'px;width:' + event_width + 
-                                'px;height:' + event_height + 'px;');
+                                'px;height:' + event_height + 'px;'+
+                                'border-color:'+events[i]['border']+
+                                ';background-color:'+events[i]['colour']);
                         day_holder.appendChild(event_div);
 
                         var min_height = Math.floor(event_start.offsetHeight);
@@ -790,8 +866,15 @@ var calendar = {
                         header_name.appendChild(header_name_inner);
                         header.appendChild(header_name);
                         event_div.appendChild(header);
-
-                        this.create_details_view(i, events[i], $(event_div).attr('id'));
+                       
+                        if(!not_recreate_details){
+                            this.create_details_view(events[i]['id'], 
+                                                     events[i], $(event_div).attr('id'));
+                        }
+                        else {
+                            var event_i = events[i]['id'];
+                            this.bind_show_modal('event_'+event_i, 'details_view_'+event_i);
+                        }
 
                         // Make the event draggable 
                         $(event_div).draggable({grid: [0, 1], 
@@ -861,11 +944,13 @@ var calendar = {
         // Remove the old junk
         var object = document.getElementById('details_view_'+i);
         if(object){
-            console.log('removing');
             var holder = document.getElementById('calendar_holder');
             holder.removeChild(object);
         }
         $('.modal-backdrop').remove();
+
+        // Iterator for the purposes of keeping the naming
+        var iter = calendar.helpers.get_event_iter(i);
             
 
         // Create the details view
@@ -907,8 +992,8 @@ var calendar = {
         $(name).attr('class', 'event_name');
         $(name).attr('data-parent-id','modal-header-'+ i);
         $(name).attr('data-fieldname', 'name');
-        $(name).attr('data-i', i);
-        $(name).attr('data-id', attrs['id']);
+        $(name).attr('data-i', iter);
+        $(name).attr('data-id', i);
         $(name).text(attrs['name']);
         this.bind_edit(name);
 
@@ -946,8 +1031,8 @@ var calendar = {
 
         $(location_body).attr('data-parent-id', 'location-' + i);
         $(location_body).attr('data-fieldname', 'location');
-        $(location_body).attr('data-i', i);
-        $(location_body).attr('data-id', attrs['id']);
+        $(location_body).attr('data-i', iter);
+        $(location_body).attr('data-id', i);
 
         $(location_header).html('Location:');
         $(location_body).html(attrs['location'] + '<br />');
@@ -964,7 +1049,6 @@ var calendar = {
         location.appendChild(location_header);
         location.appendChild(maps_btn);
 
-
         // Description
         var description = document.createElement('div');
         $(description).attr('id', 'description-' + i);
@@ -978,8 +1062,8 @@ var calendar = {
         $(description_body).text(attrs['description']);
         $(description_body).attr('data-parent-id', 'description-' + i);
         $(description_body).attr('data-fieldname', 'description');
-        $(description_body).attr('data-i', i);
-        $(description_body).attr('data-id', attrs['id']);
+        $(description_body).attr('data-i', iter);
+        $(description_body).attr('data-id', i);
         this.bind_edit(description_body);
 
         description.appendChild(description_body);
@@ -996,16 +1080,17 @@ var calendar = {
 
         var att_body = document.createElement('div');
         $(att_body).attr('class','details_body');
-        for(i in attrs['attendees']){
+        for(var j in attrs['attendees']){
             var attendant = document.createElement('button');
             $(attendant).attr('class', 'btn btn-info btn-mini btn-att');
-            $(attendant).attr('data-id', attrs['attendees'][i][0]);
+            $(attendant).attr('data-id', attrs['id']+'_'+attrs['attendees'][j][0]);
 
             var attendant_name = document.createElement('div');
             $(attendant_name).attr('class', 'attendant_name');
-            $(attendant_name).text(attrs['attendees'][i][1]);
+            $(attendant_name).text(attrs['attendees'][j][1]);
             attendant.appendChild(attendant_name);
-            if(attrs['attendees'][i][0] == uid){
+            if(attrs['attendees'][j][0] == uid || 
+               attrs['owner'][0] == uid){
                 // Add a spacer
                 var spacer = document.createElement('div');
                 $(spacer).attr('class', 'spacer');
@@ -1014,8 +1099,13 @@ var calendar = {
 
                 var remove = document.createElement('i');
                 $(remove).attr('class', 'icon-remove');
-                $(remove).bind('click', function(event){
-                    // IMPLEMENT
+                $(remove).bind('click', {event_id: attrs['id'],
+                                         user_id: attrs['attendees'][j][0],
+                                         button_handler: $(attendant).attr('data-id')}, 
+                                         function(event){
+                    calendar.delete_attendant(event.data.event_id,
+                                              event.data.user_id,
+                                              event.data.button_handler);
                 });
                 attendant.appendChild(remove);
             }
@@ -1047,11 +1137,387 @@ var calendar = {
         modal_body.appendChild(att);
         //modal_body.appendChild(joinable);
         details.appendChild(modal_body);
+        
+        // Delete button - show only if a person is an owner
+        if(attrs['owner'][0] == uid){
+            var delete_button = document.createElement('button');
+            $(delete_button).attr('class','btn btn-mini btn-danger delete_button');
+            $(delete_button).attr('id', 'delete_button_'+attrs['id']);
+            $(delete_button).text('Delete this item');
+            $(delete_button).bind('click', function(event){
+                event.preventDefault();
+                $.ajax({
+                    url: script_root + '/_event_delete/'+attrs['id'],
+                    type: 'DELETE',
+                    dataType: 'json',
+                    success: function(data){
+                        $(details).modal('hide');
+                        $('#event_'+data.which).hide('explode',1000,function(){
+                            calendar.helpers.remove_event(data.which);
+                        });
+                    }
+                    
+                });
+            });
+            modal_body.appendChild(delete_button);
+            
+            // Also if person is an owner, the person should be allowed to add files
+            // to an event
+            var file_input = document.createElement('input');
+            $(file_input).attr('type', 'file');
+            $(file_input).attr('id', 'file_input_'+attrs['id']);
+            $(file_input).attr('class', 'file_input');
+            $(file_input).attr('style', 'display:none;');
+            
+            
+            var dropbox_wrapper = document.createElement('div');
+            $(dropbox_wrapper).attr('class', 'dropbox_wrapper dropbox');
+            $(dropbox_wrapper).attr('data-id', attrs['id']);
+            $(dropbox_wrapper).attr('id', 'dropbox_wrapper_'+attrs['id']);
+
+            var file_dropbox = document.createElement('div');
+            $(file_dropbox).attr('id', 'file_dropbox_'+attrs['id']);
+            $(file_dropbox).attr('data-id', attrs['id']);
+            $(file_dropbox).attr('class', 'file_dropbox dropbox');
+
+            var dropbox_label = document.createElement('div');
+            $(dropbox_label).attr('id', 'dropbox_label_'+attrs['id']);
+            $(dropbox_label).attr('data-id', attrs['id']);
+            $(dropbox_label).attr('class', 'dropbox dropbox_label');
+            var dropbox_label_text = document.createElement('h1');
+            $(dropbox_label_text).attr('id', 'dropbox_label_text_'+attrs['id']);
+            $(dropbox_label_text).attr('class', 'dropbox dropbox_label_text');
+            $(dropbox_label_text).attr('data-id', attrs['id']);
+            $(dropbox_label_text).text('Drop files here');
+            dropbox_label.appendChild(dropbox_label_text);
+
+            file_dropbox.appendChild(dropbox_label);
+            dropbox_wrapper.appendChild(file_dropbox);
+
+            modal_body.appendChild(dropbox_wrapper);
+            
+            this.bind_dropbox(dropbox_wrapper);
+            this.bootstrap_dropbox(dropbox_wrapper);
+        }
+
+
 
         $('#calendar_holder').append(details);
         this.bind_show_modal(id, $(details).attr('id'));
         //$(details).modal();
         // TODO: Add headers in details display
+    },
+
+    // Bootstrap the dropbox - fill it with the already added files from the server
+    bootstrap_dropbox: function(dropbox){
+        $.ajax({
+            url: script_root + '/_get_filelist/'+$(dropbox).attr('data-id'),
+            type: 'GET',
+            dataType: 'json',
+            success: function(data){
+                var dropbox = $('#file_dropbox_'+data.event_id)[0];
+
+                for(var i in data.files){
+                    var timestamp = (new Date).getTime();
+
+                    var thumbnail = document.createElement('div');
+                    $(thumbnail).attr('class', 'file_thumbnail');
+                    $(thumbnail).attr('id', 'file_thumbnail_'+timestamp);
+                    $(thumbnail).attr('data-id', data.event_id);
+                    $(thumbnail).attr('data-file_id', data.files[i]['id']);
+                    $(thumbnail).attr('data-filename', data.files[i]['filename']);
+                    $(thumbnail).attr('data-mimetype', data.files[i]['mimetype']);
+                    dropbox.appendChild(thumbnail);
+
+                    calendar.generate_thumbnail(thumbnail, timestamp);
+                }
+            }
+        });
+    },
+
+    // Generates the thumbnail image (or icon) for the file
+    generate_thumbnail: function(thumbnail, timestamp){
+        var image_type = /image.*/;
+        var id = $(thumbnail).attr('data-file_id');
+        var x = 60;
+        var y = 60;
+
+        // If it is an image, get the image
+        if($(thumbnail).attr('data-mimetype').match(image_type)){
+            $.ajax({
+                url: script_root + '/_get_thumbnail/'+id+'/'+x+'/'+y,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data){
+                    var thumbnail = $('[data-file_id='+data.file_id+'].file_thumbnail')[0];
+                    
+                    // Filename header
+                    var filename = document.createElement('div');
+                    $(filename).attr('class', 'filename');
+                    $(filename).attr('id', 'filename_'+data.file_id);
+                    $(filename).attr('data-id', $(thumbnail).attr('data-id'));
+                    $(filename).text(data.filename);
+                    thumbnail.appendChild(filename);
+
+                    var img = document.createElement('img');
+                    $(img).attr('data-id', $(thumbnail).attr('data-id'));
+                    $(img).attr('class', 'thumb');
+                    $(img).attr('id', 'thumb_'+data.file_id);
+
+                    var header = 'data:'+data.mimetype+';base64,'
+                    img.src = header + data.thumb;
+                    
+                    // Set the top offset
+                    var offset = (60-parseInt(data.height))/2;
+                    $(img).attr('style', 'top:'+offset+'px;');
+                    thumbnail.appendChild(img);
+                    
+                    calendar.bind_tooltips(thumbnail);
+                }
+            });
+        }
+        // If it is not an image, get the icon
+        else {
+            $.ajax({
+                url: script_root + '/_get_icon/'+id+'/'+x+'/'+y,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data){
+                    var thumbnail = $('[data-file_id='+data.file_id+'].file_thumbnail')[0];
+                    
+                    // Filename header
+                    var filename = document.createElement('div');
+                    $(filename).attr('class', 'filename');
+                    $(filename).attr('id', 'filename_'+data.file_id);
+                    $(filename).attr('data-id', $(thumbnail).attr('data-id'));
+                    $(filename).text(data.filename);
+                    thumbnail.appendChild(filename);
+
+                    var img = document.createElement('img');
+                    $(img).attr('data-id', $(thumbnail).attr('data-id'));
+                    $(img).attr('id', 'thumb_'+data.file_id);
+                    $(img).attr('class', 'thumb');
+
+                    var header = 'data:'+data.mimetype+';base64,'
+                    img.src = header + data.thumb;
+                    thumbnail.appendChild(img);
+                    
+                    calendar.bind_tooltips(thumbnail);
+                }
+            });
+        }
+                    
+    },
+
+    // Create and bind the tooltips for the thumbnail
+    bind_tooltips: function(thumbnail){
+        console.log('binding');
+        console.log(thumbnail);
+
+        $(thumbnail).attr('rel', 'tooltip');
+        var tooltip_contents = document.createElement('div');
+        $(tooltip_contents).attr('class', 'tooltip_contents');
+
+        var delete_button = document.createElement('button');
+        $(delete_button).attr('class', 'btn btn-danger btn-mini delete_button');
+        $(delete_button).attr('data-id', $(thumbnail).attr('data-id'));
+        $(delete_button).attr('data-file_id', $(thumbnail).attr('data-file_id'));
+        $(delete_button).attr('style', 'margin-right:5px;');
+        $(delete_button).text('Delete file');
+        tooltip_contents.appendChild(delete_button);
+
+        
+        var get_button = document.createElement('button');
+        $(get_button).attr('class', 'btn btn-success btn-mini');
+        $(get_button).attr('data-id', $(thumbnail).attr('data-id'));
+        $(get_button).text('Get this file!');
+        $(get_button).attr('style', 'margin-right:5px;');
+        tooltip_contents.appendChild(get_button);
+
+        $(thumbnail).attr('title', tooltip_contents.innerHTML);
+
+        $(thumbnail).tooltip({placement:'bottom', trigger:'manual'});
+        for(var i=0; i < thumbnail.children.length; i++){
+            $(thumbnail.children[i]).bind('click',
+                                          {file_id: $(thumbnail).attr('data-file_id')}, 
+                                          function(event){
+                event.preventDefault();
+                var thumbnail = $('[data-file_id='+event.data.file_id+'].file_thumbnail')[0];
+                $(thumbnail).tooltip('toggle');
+
+                // Bind the delete button
+                var delete_button = $('[data-file_id='+event.data.file_id+'].delete_button')[0];
+                $(delete_button).bind('click', 
+                                      {file_id: $(thumbnail).attr('data-file_id')},
+                                      function(event){
+                    console.log('clicked');
+                    var thumbnail = $('[data-file_id='+event.data.file_id+'].file_thumbnail')[0];
+                    $(thumbnail).tooltip('hide');
+                    calendar.delete_file(event.data.file_id);
+                });
+            });
+        }
+    },
+
+    // Delete the file with a given file_id
+    delete_file: function(file_id){
+        console.log('deleting '+file_id);
+            $.ajax({
+                url: script_root + '/_delete_file/'+file_id,
+                type: 'DELETE',
+                dataType: 'json',
+                success: function(data){
+                    var thumbnail = $('[data-file_id='+data.file_id+'].file_thumbnail')[0];
+                    $(thumbnail).hide('highlight', function(){
+                        var dropbox = $('[data-id='+$(this).attr('data-id')+'].file_dropbox')[0];
+                        dropbox.removeChild(this);
+                    });
+                }
+            });
+    },
+
+
+    // Bind the file dropbox
+    bind_dropbox: function(dropbox){
+        dropbox.addEventListener('drop', calendar.dropbox_drop, false);
+
+        $(dropbox).bind('dragenter', function(event){ event.preventDefault()});
+        $(dropbox).bind('dragover', function(event){ event.preventDefault()});
+    },
+
+    // The listener for dropbox drop events
+    dropbox_drop: function(event){
+        event.preventDefault();
+
+        // Get all the needed stuff
+        var files = event.dataTransfer.files;
+        var data_id = $('#'+event.target.id).attr('data-id');
+        var x = 60; var y = 60;
+
+        var dropbox = document.getElementById('file_dropbox_'+data_id);
+
+        for(var i=0; i<files.length; i++){
+            // A source of distinct nonrandom numbers
+            var timestamp = (new Date).getTime();
+            var image_type = /image.*/;
+
+            // Create the thumbnail
+            // TODO: Defer this creation to an external function
+            var thumbnail = document.createElement('div');
+            $(thumbnail).attr('class', 'file_thumbnail');
+            $(thumbnail).attr('id', 'file_thumbnail_'+timestamp);
+            $(thumbnail).attr('data-id', data_id);
+                    
+            // Filename header
+            var filename = document.createElement('div');
+            $(filename).attr('class', 'filename');
+            $(filename).attr('data-id', data_id);
+            $(filename).attr('id', 'filename_'+timestamp);
+            var f_match = files[i].name.match(/.*\./)[0];
+            $(filename).text(f_match.slice(0, f_match.length-1));
+            
+            var f_ext = files[i].name.match(/\..*/)[0];
+            f_ext = f_ext.slice(1, f_ext.length);
+            console.log(f_ext);
+
+            thumbnail.appendChild(filename);
+
+            dropbox.appendChild(thumbnail);
+        
+            // If it is a picture, generate thumbnail
+            if(files[i].type.match(image_type)){
+                $(thumbnail).hide();
+
+                var img = document.createElement('img');
+                $(img).attr('class', 'thumb');
+                $(img).attr('data-id', data_id);
+                $(img).attr('id', 'thumb_'+timestamp);
+                img.file = files[i];
+
+                thumbnail.appendChild(img);
+
+                var reader = new FileReader();
+                reader.onload = (function(aImg, thumbnail) {
+                    return function(e) { 
+                        aImg.src=e.target.result;
+                        $(thumbnail).delay(200).show('scale', function(){
+                            var offset = (this.offsetHeight-this.children[1].offsetHeight)/2;
+                            $(this.children[1]).animate({'top': offset+'px'});
+                            return true;
+                        });
+                    };
+                })(img, thumbnail);
+                reader.readAsDataURL(files[i]);
+            }
+            // If it is not an image, get the icon
+            else {
+                $.ajax({
+                    url: script_root + '/_get_icon_by_mimetype',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        x: 60,
+                        y: 60,
+                        mimetype: f_ext,
+                        timestamp: timestamp
+                    },
+                    success: function(data){
+                        var thumbnail = $('#file_thumbnail_'+data.timestamp)[0];
+
+                        var img = document.createElement('img');
+                        $(img).attr('class', 'thumb');
+                        $(img).attr('id', 'thumb_'+data.timestamp);
+                        $(img).attr('data-id', $(thumbnail).attr('data-id'));
+
+                        var header = 'data:'+data.mimetype+';base64,'
+                        img.src = header + data.thumb;
+                        console.log(img);
+                        thumbnail.appendChild(img);
+                    }
+                });
+            }
+            
+            calendar.send_file(files[i], timestamp, data_id);
+        }
+    },
+
+    // Delete someone from an event
+    delete_attendant: function(event_id, user_id, button_handler){
+        $.ajax({
+            url: script_root + '/_modify_attendant/'+event_id+'/'+user_id,
+            type: 'DELETE',
+            dataType: 'json',
+            success: function(data){
+                $('[data-id='+button_handler+'].btn-att').hide('highlight',1000);
+            }
+        });
+    },
+
+    // Send file
+    send_file: function(file, timestamp, id){
+
+        var fd = new FormData();
+        fd.append('file', file);
+        var thumbnail = $('#file_thumbnail_'+timestamp)[0];
+
+        $.ajax({
+            url: script_root + '_save_file/'+id+'/'+timestamp,
+            type: 'POST',
+            processData: false,
+            contentType: false,
+            data: fd,
+            success: function(data){
+                var thumbnail = $('#file_thumbnail_'+timestamp)[0];
+                console.log(thumbnail);
+                $(thumbnail).attr('data-file_id',data.file_id);
+                calendar.bind_tooltips(thumbnail);
+
+                status_notify(thumbnail, 'success');
+            },
+            error: function(data){
+                status_notify(thumbnail, 'error');
+            }
+        });
     },
 
 
@@ -1084,8 +1550,10 @@ var calendar = {
 
             // Prevent the opening of a modal when clicked on the day-view
             if($(this).attr('data-block-modal') == 'true'){
-                calendar.prevent.push('modal_' + $(this).attr('data-i'));
-                $(edit_field).bind('click', {i: $(this).attr('data-i')}, 
+                var i = events[$(this).attr('data-i')]['id'];
+
+                calendar.prevent.push('modal_'+i);
+                $(edit_field).bind('click', {i: i}, 
                         function(event){
                             calendar.prevent.push('modal_'+event.data.i);
                         });
@@ -1103,36 +1571,38 @@ var calendar = {
     watch_field: function(field_id) {
         if(!this.prevented('watch_field_' + field_id)){
             var field = document.getElementById(field_id);
+            if(field){
 
-            // Make Return force sync with server
-            $(field).keypress({'fid': field_id}, function(event){
-                if(event.which == 13 && !calendar.prevented(
-                        'watch_field_' + field_id + '_return')){
-                    event.preventDefault();
+                // Make Return force sync with server
+                $(field).keypress({'fid': field_id}, function(event){
+                    if(event.which == 13 && !calendar.prevented(
+                            'watch_field_' + field_id + '_return')){
+                        event.preventDefault();
 
-                    calendar.field_save_and_remove(event.data.fid);
+                        calendar.field_save_and_remove(event.data.fid);
                     
-                    // This will ensure us that the rest of the function will not run
-                    // if save event was lunched
-                    calendar.prevent.push('field_save_and_remove_' + event.data.fid);
-                    calendar.prevent.push('watch_field_' + event.data.fid);
+                        // This will ensure us that the rest of the function will not run
+                        // if save event was lunched
+                        calendar.prevent.push('field_save_and_remove_' + event.data.fid);
+                        calendar.prevent.push('watch_field_' + event.data.fid);
 
+                    }
+                });
+                if($(field).attr('data-prev') == field.value){
+                    // Check if the field stays the same for longer time,
+                    // so it can be saved
+                    if($(field).attr('data-prev-count') == 2){
+                        this.field_save_and_remove(field_id);
+                    }
                 }
-            });
-            if($(field).attr('data-prev') == field.value){
-                // Check if the field stays the same for longer time,
-                // so it can be saved
-                if($(field).attr('data-prev-count') == 2){
-                    this.field_save_and_remove(field_id);
+                else
+                    $(field).attr('data-prev-count', 0);
+                if(document.getElementById($(field).attr('id'))){
+                    $(field).attr('data-prev', field.value);
+                    $(field).attr('data-prev-count', 
+                            parseInt($(field).attr('data-prev-count'))+1);
+                    setTimeout("calendar.watch_field('" + $(field).attr('id') + "')", 3000);
                 }
-            }
-            else
-                $(field).attr('data-prev-count', 0);
-            if(document.getElementById($(field).attr('id'))){
-                $(field).attr('data-prev', field.value);
-                $(field).attr('data-prev-count', 
-                        parseInt($(field).attr('data-prev-count'))+1);
-                setTimeout("calendar.watch_field('" + $(field).attr('id') + "')", 3000);
             }
         }
     },
@@ -1141,10 +1611,12 @@ var calendar = {
         if(!this.prevented('field_save_and_remove_' + field_id)){
             // SYNC with server
             var field = document.getElementById(field_id);
-            events[$(field).attr('data-i')][$(field).attr('data-fieldname')] =
+            var i = calendar.helpers.get_event_iter($(field).attr('data-i'));
+            var id = $(field).attr('data-i');
+            events[id][$(field).attr('data-fieldname')] =
                 field.value;
 
-            calendar.helpers.json_event_save($(field).attr('data-i'));
+            calendar.helpers.json_event_save(id);
 
             var static_field = document.createElement('div');
             $(static_field).attr('id', $(field).attr('data-id'));
@@ -1159,39 +1631,39 @@ var calendar = {
                     $(field).attr('data-parent'));
             parent.removeChild(field);
             parent.appendChild(static_field);
-            calendar.draw_events_day();
+            calendar.draw_events_day(true);
             calendar.bind_edit(static_field);
         }
     },
 
+    get_QR_code: function(event_id){
+        $.ajax({
+            url: script_root + '/_get_event_qr/'+event_id,
+            mimeType: 'application/base64',
+            success: function(data){
+                data = 'data:image/png;base64,' + data;
+                var image = new Image();
+                image.src = data;
+
+                image.onload = function() {
+                    var qr_canvas = document.getElementById('event_QR_canvas_'+event_id);
+                    var context = qr_canvas.getContext('2d');
+                    context.clearRect(0, 0, 305, 305);
+                    context.drawImage(image, 0, 0, 305, 305);
+                }
+            }
+        });
+    },
+
+
     bind_show_modal: function(event_id, modal_id){
         $('#' + event_id).bind('click', {id: modal_id}, function(event){
-            var i = event.data.id.slice(13);
-            if(!calendar.prevented('modal_' + i)){
+            var id = event.data.id.slice(13);
+            if(!calendar.prevented('modal_' + id)){
                 $('#' + event.data.id).attr('style', '');
-                $('#' + event.data.id).modal();
-
-                // QR code getter
-                // TODO: Add a client-size cache
-                $.ajax({
-                    url: script_root + '/_get_event_qr',
-                    mimeType: 'application/base64',
-                    data: {
-                        'id': events[i]['id']
-                    },
-                    success: function(data){
-                        data = 'data:image/png;base64,' + data;
-                        var image = new Image();
-                        image.src = data;
-
-                        image.onload = function() {
-                            var qr_canvas = document.getElementById('event_QR_canvas_'+i);
-                            var context = qr_canvas.getContext('2d');
-                            context.clearRect(0, 0, 305, 305);
-                            context.drawImage(image, 0, 0, 305, 305);
-                        }
-                    }
-                });
+                $('#' + event.data.id).modal({keyboard:'true'});
+                
+                calendar.get_QR_code(id);
             }
         });
     },
@@ -1219,7 +1691,6 @@ var calendar = {
             for(var j in this.prevent){
                 if(this.prev_prevent[i] == this.prevent[j]){
                     this.prevent.splice(j,1);
-                    console.log('removing_duplicate');
                     break;
                 }
             }

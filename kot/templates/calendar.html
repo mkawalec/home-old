@@ -13,13 +13,19 @@
             'description': '{{ event.description.decode('utf-8') }}',
             'attendees': [{% for att in event.attendees %} [{{ att.id }}, '{{ att.uname.decode('utf-8') }}'], {% endfor %}],
             'owner': [{{ event.owner.id }}, '{{ event.owner.uname.decode('utf-8') }}'],
-            'id': {{ event.id }}
+            'id': {{ event.id }},
+            'colour': '{{ event.colour }}',
+            'border': '{{ event.border }}'
         },
     {% endfor %}
     ];
+    var user_colour = '{{ colours.colour }}';
+    var user_border = '{{ colours.border }}';
 </script>
 
 <link rel=stylesheet href="{{ url_for('static', filename='css/cal.css') }}">
+<script type=text/javascript src="{{ url_for('static', filename='js/helpers.js') }}">
+</script>
 <script type=text/javascript src="{{ url_for('static', filename='js/cal.js') }}">
 </script>
 {% endblock %}

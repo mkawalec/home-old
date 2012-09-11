@@ -28,6 +28,8 @@ import os
 
 import mimetypes
 
+from random import randint
+
 
 SECRET_KEY = 'adsdfnjw4rwd332'
 SALT = 'sdfj323rf'
@@ -92,15 +94,29 @@ def allowed_file(filename):
 
 # Returns the x and y size of an image will have after keeping the aspect
 # ratio
-def get_size(bb):
+def get_size(bb,size):
     width = bb[2]-bb[0]
     height = bb[3]-bb[1]
     mult = 1
     if width > height:
-        mult = 40/width
+        mult = size/width
     else: 
-        mult = 40/height
+        mult = size/height
     return (int(width*mult), int(height*mult))
+
+def gen_filename(number=10):
+    filename = ''
+    chars = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
+             'l', 'm', 'n', 'o', 'p', 'r', 's', 't', 'u', 'w', 'x',
+             'y', 'q', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+             'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'R', 'S', 'T',
+             'U', 'W', 'Q', 'X', 'Y', 'Z', '1', '2', '3', '4', '5',
+             '6', '7', '8', '9', '0']
+    
+    for i in range(number):
+        filename += chars[randint(0, len(chars)-1)]
+
+    return filename
 
 ## Sends to the client a StringIO object not analysing
 ## its contents in any way - it will be base64
@@ -212,7 +228,17 @@ def add_user():
 @login_required
 def calendar():
     ## Get the events
-    events = query_db("SELECT * FROM events")
+    events = query_db("(SELECT e.id,e.timestamp,e.date,e.location,"
+                      "e.duration,e.name,e.description,e.owner,"
+                      "c.border,c.colour FROM events e, colours c, "
+                      "users u, attendees a WHERE c.id=u.colour AND "
+                      "a.event=e.id AND u.id=e.owner AND a.person=%s) "
+                      "UNION (SELECT e.id,e.timestamp,"
+                      "e.date,e.location,e.duration,e.name,e.description,"
+                      "e.owner,c.border,c.colour FROM events e, colours c, "
+                      "users u WHERE c.id=u.colour AND u.id=e.owner AND "
+                      "u.id=%s)",
+                      [session['uid'], session['uid']])
     ## For each of the events, get the list of the attendees
     for event in events:
         event['attendees'] = query_db('SELECT u.id, u.uname '
@@ -223,8 +249,12 @@ def calendar():
                                   'FROM users u, events e '
                                   'WHERE e.owner = u.id AND '
                                   'e.id = %s', [event['id']], one=True)
-
-    return render_template('calendar.html',events=events)
+    
+    # Get user colours
+    colours = query_db('SELECT c.colour,c.border FROM colours c, users u '
+                       'WHERE u.colour = c.id AND u.id=%s',
+                       [session['uid']], one=True)
+    return render_template('calendar.html',events=events,colours=colours)
 
 # User settings page
 @app.route('/settings')
@@ -295,7 +325,7 @@ def save_avatar():
 
     # Generate a thumbnail
     avatar = Image.open(filename + extension)
-    avatar = avatar.resize(get_size(avatar.getbbox()))
+    avatar = avatar.resize(get_size(avatar.getbbox(),40))
     avatar.save(filename + '-thumb' + extension)
     
     ret = query_db('UPDATE users SET has_thumbnail=TRUE,avatar=%s,avatar_thumb=%s '
@@ -305,6 +335,120 @@ def save_avatar():
                     session['uid']])
 
     return jsonify(result=ret)
+
+# Receive a file
+@app.route('/_save_file/<int:event_id>/<timestamp>', methods=['POST'])
+@login_required
+def save_file(event_id, timestamp):
+    event_file = request.files['file']
+    extension = re.search('\..*', str(event_file.filename)).group(0)
+    real_filename = re.search('.*\.',str(event_file.filename)).group(0)[:-1]
+    print real_filename
+    filename = gen_filename()
+
+    # Checking if the file already exists
+    try:
+        with open('static/event-files/'+filename+extension) as f:
+            filename = gen_filename()
+    except IOError:
+        pass
+
+    event_file.save('static/event-files/'+filename+extension)
+    (mimetype, enc) = mimetypes.guess_type('static/event-files/'+filename+extension)
+
+    ret = query_db('INSERT INTO event_files (event,file,filename,'
+                   'uploaded_by,mimetype) VALUES (%s,%s,%s,%s,%s)',
+                   [event_id, 'static/event-files/'+filename+extension,
+                    real_filename,session['uid'],mimetype])
+    file_id = query_db('SELECT id FROM event_files WHERE event=%s AND file=%s',
+                       [event_id, 'static/event-files/'+filename+extension],
+                       one=True)['id']
+
+    return jsonify(result=ret, file_id=file_id, timestamp=timestamp)
+
+# Delete a file
+@app.route('/_delete_file/<int:file_id>', methods=['DELETE'])
+@login_required
+def delete_file(file_id):
+    path = query_db('SELECT file FROM event_files WHERE id=%s',
+                    [file_id], one=True)['file']
+    os.remove(path)
+
+    ret = query_db('DELETE FROM event_files WHERE id=%s', [file_id])
+    return jsonify(result=ret, file_id=file_id)
+
+@app.route('/_get_filelist/<int:event_id>')
+@login_required
+def get_filelist(event_id):
+    event_files = query_db('SELECT id,filename,mimetype FROM event_files '
+                        'WHERE event=%s', [event_id])
+    return jsonify(files=event_files, event_id=event_id)
+
+# Get a thumbnail for an image
+@app.route('/_get_thumbnail/<int:file_id>/<int:x>/<int:y>')
+@login_required
+def get_thumbnail(file_id, x, y):
+    filename = query_db('SELECT id,file,mimetype,filename FROM '
+                        'event_files WHERE id=%s', [file_id], one=True)
+
+    thumb = Image.open(filename['file'])
+    # TODO do a nice resize
+    (width, height) = get_size(thumb.getbbox(),x)
+    thumb = thumb.resize((width,height))
+    thumb_data = StringIO()
+    thumb.save(thumb_data, "JPEG")
+    thumb = b64encode(thumb_data.getvalue())
+
+    return jsonify(thumb=thumb, file_id=file_id, 
+                   mimetype=filename['mimetype'], filename=filename['filename'],
+                   height=height, filename_id=filename['id'])
+
+@app.route('/_get_icon/<int:file_id>/<int:x>/<int:y>')
+@login_required
+def get_icon(file_id, x, y):
+    data = query_db('SELECT id,file,filename FROM event_files WHERE id=%s',
+                        [file_id], one=True)
+    mimetype = re.search('\..*',str(data['file'])).group(0)[1:]
+    icon_mimetype = 'image/png'
+    icon = StringIO()
+
+    try:
+        with open('static/mimetypes/'+mimetype+'.png', 'r') as f:
+            tmp = Image.open('static/mimetypes/'+mimetype+'.png')
+            tmp = tmp.resize((x, y))
+            tmp.save(icon, 'PNG')
+    except IOError:
+        tmp = Image.open('static/mimetypes/mime_ascii.png')
+        tmp = tmp.resize((x, y))
+        tmp.save(icon, 'PNG')
+
+    icon = b64encode(icon.getvalue())
+    return jsonify(thumb=icon, file_id=file_id, 
+                   mimetype=icon_mimetype, filename=data['filename'],
+                   filename_id=data['id'])
+
+@app.route('/_get_icon_by_mimetype', methods=['POST'])
+@login_required
+def get_icon_by_mimetype():
+    mimetype = request.form['mimetype']
+    x = int(request.form['x'])
+    y = int(request.form['y'])
+    icon_mimetype = 'image/png'
+    icon = StringIO()
+
+    try:
+        with open('static/mimetypes/'+mimetype+'.png', 'r') as f:
+            tmp = Image.open('static/mimetypes/'+mimetype+'.png')
+            tmp = tmp.resize((x, y))
+            tmp.save(icon, 'PNG')
+    except IOError:
+        tmp = Image.open('static/mimetypes/mime_ascii.png')
+        tmp = tmp.resize((x, y))
+        tmp.save(icon, 'PNG')
+
+    icon = b64encode(icon.getvalue())
+    return jsonify(thumb=icon, timestamp=request.form['timestamp'], 
+                   mimetype=icon_mimetype)
 
 # Delete user's avatar
 @app.route('/_avatar_delete', methods=['POST'])
@@ -345,6 +489,48 @@ def save_event():
                 request.form['id']])
     return jsonify(result=ret)
 
+# Create an event
+@app.route('/_event_create', methods=['POST'])
+def create_event():
+    ret = query_db('INSERT INTO events (name,location,description,'
+                   'date,duration,owner) VALUES (%s,%s,%s,%s,%s,%s)',
+                   [request.form['name'],
+                   request.form['location'],
+                   request.form['description'],
+                   request.form['date'],
+                   request.form['duration'],
+                   session['uid']])
+    event_id = query_db('SELECT id FROM events WHERE name=%s AND '
+                        'location=%s AND description=%s AND '
+                        'date=%s AND duration=%s AND owner=%s',
+                        [request.form['name'],
+                        request.form['location'],
+                        request.form['description'],
+                        request.form['date'],
+                        request.form['duration'],
+                        session['uid']],one=True)['id']
+    return jsonify(event_id=event_id,name=request.form['name'],
+                   location=request.form['location'],
+                   description=request.form['description'],
+                   date=request.form['date'],
+                   duration=request.form['duration'])
+# Deletes an event
+@app.route('/_event_delete/<int:which>', methods=['DELETE'])
+def delete_event(which):
+    ret = query_db('DELETE FROM events WHERE id=%s',
+                   [which])
+    return jsonify(data=ret,which=which)
+
+# Modifies and attendant list
+@app.route('/_modify_attendant/<int:event_id>/<int:user_id>', 
+           methods=['DELETE'])
+def modify_attendant(event_id, user_id):
+    if request.method == 'DELETE':
+        ret = query_db('DELETE FROM attendees WHERE person=%s AND event=%s',
+                       [user_id, event_id])
+        return jsonify(result=ret)
+    return jsonify(result=False)
+
 # Save or delete the piles
 @app.route('/_piles_save', methods=['POST'])
 def save_piles():
@@ -378,15 +564,18 @@ def search_for_users():
                    [session['uid'], request.args.get('query', '')])
     return jsonify(result=ret)
 
-@app.route('/_get_event_qr')
-def event_qr():
+@app.route('/_get_event_qr/<int:event_id>')
+def event_qr(event_id):
     enc = Encoder()
     qr_raw_data = query_db('SELECT name,location,date,duration '
                            'FROM events WHERE id=%s',
-                           [request.args.get('id')], one=True)
+                           [event_id], one=True)
 
-    # TODO: Duration needs adding here
-    qr_data = 'BEGIN:VEVENT' + '\nSUMMARY:' + qr_raw_data['name'] + '\nLOCATION:' + qr_raw_data['location'] + '\nDTSTAMP:' + qr_raw_data['date'].isoformat() + '\nEND:VEVENT'
+    # end date is being set
+    end_date =  timedelta(0,0,0,0,qr_raw_data['duration'])
+    end_date += qr_raw_data['date']
+    
+    qr_data = 'BEGIN:VEVENT' + '\nSUMMARY:' + qr_raw_data['name'] + '\nLOCATION:' + qr_raw_data['location'] + '\nDTSTART:' + qr_raw_data['date'].isoformat() + '\nDTEND:' + end_date.isoformat() + '\nEND:VEVENT'
     
     im = enc.encode(qr_data, {'width': 305, 'version':10})
     output = StringIO()

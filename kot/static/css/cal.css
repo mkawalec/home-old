@@ -136,7 +136,7 @@ div.btn-group       {
 
 .event_owner {
     float: right;
-    width: 160px;
+    width: 200px;
 }
 
 .event_time {
@@ -150,7 +150,7 @@ div.btn-group       {
 }
 
 textarea.edit-field {
-    width: 200px;
+    width: 180px;
     margin-top: 5px;
 }
 
@@ -186,10 +186,13 @@ textarea.edit-field {
     width: 300px;
     overflow: hidden;
     font-size: 1.5em;
+    line-height: 1.5em;
 }
 
 .modal-body {
     width: 530px;
+    margin-top: 0px;
+    padding-top: 5px;
 }
 
 .details_elem {
@@ -240,4 +243,75 @@ textarea.edit-field {
     height: 17px;
     overflow: hidden;
     white-space: nowrap;
+}
+
+.delete_button {
+    float: right;
+}
+
+.dropbox_wrapper {
+    width: 200px;
+    height: 140px;
+    border: 1px dashed black;
+    margin-top: 10px;
+
+    float: right;
+    position: relative;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
+.file_dropbox {
+    width: 185px;
+    min-height: 125px;
+
+    float: left;
+    position: relative;
+}
+
+.dropbox_label {
+    position: absolute;
+    width: 185px;
+    left: 0px; top: 34px;
+    opacity: 0.4;
+    text-align: center;
+}
+
+.file_thumbnail {
+    position: relative;
+    float: left;
+    
+    border: 1px solid black;
+    width: 60px;
+    height: 60px;
+    margin-left: 10px;
+    margin-top: 10px;
+    background-color: white;
+    
+    z-index: 2;
+
+    overflow: hidden;
+}
+
+.thumb {
+    max-width: 60px;
+    max-height: 60px;
+    vertical-align: middle;
+    position: relative;
+}
+
+.filename {
+    position: absolute;
+    z-index: 3;
+    top: 2px; left: 0px;
+    color: black;
+    background-color: white;
+    opacity: 0.8;
+    width: 60px;
+    text-align: center;
+    overflow: hidden;
+}
+
+.popover {
+    z-index: 5000 !important;
 }
