@@ -239,12 +239,6 @@ def logout():
     
     return redirect(url_for('home'))
 
-@app.route('/account_details')
-@login_required
-def account():
-    return render_template('home.html')
-
-
 @app.route('/calendar')
 @login_required
 def calendar():
@@ -704,7 +698,7 @@ def event_qr(event_id):
     end_date =  timedelta(0,0,0,0,qr_raw_data['duration'])
     end_date += qr_raw_data['date']
     
-    qr_data = 'BEGIN:VEVENT' + '\nSUMMARY:' + qr_raw_data['name'] + '\nLOCATION:' + qr_raw_data['location'] + '\nDTSTART:' + qr_raw_data['date'].isoformat() + '\nDTEND:' + end_date.isoformat() + '\nEND:VEVENT'
+    qr_data = 'BEGIN:VEVENT' + '\nSUMMARY:' + qr_raw_data['name'] + '\nLOCATION:' + qr_raw_data['location'] + '\nDTSTART:' + qr_raw_data['date'].isoformat() + '\nDTEND:' + end_date.isoformat() + '\nURL:' + request.url_root + '\nEND:VEVENT'
     
     im = enc.encode(qr_data, {'width': 305, 'version':10})
     output = StringIO()
