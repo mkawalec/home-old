@@ -117,3 +117,56 @@ get_nice_size = (file_size) ->
         file_size = Math.round file_size/1024
 
     return -1
+
+# Calculate entropy for a given password
+calculate_entropy = (pass) ->
+    possible_symbols = 0
+    
+    numbers = /[0-9]/
+    small_case = /[a-z]/
+    large_case = /[A-Z]/
+    others = /\!\@\#\$\%\^\*\(\)\,\.\<\>\~\`\[\]\{\}\\\/\+\=\-\s/
+    if !pass.match numbers
+    else
+        possible_symbols += 10
+
+    if !pass.match small_case
+    else
+        possible_symbols += 26
+
+    if !pass.match large_case
+    else
+        possible_symbols += 26
+    if !pass.match others
+    else
+        possible_symbols += 25
+
+    if possible_symbols == 0
+        return -1
+
+    return Math.round(pass.length*
+                      Math.log(possible_symbols)/Math.log(2))
+
+# Return a nice string description of a number
+nicefy = (number) ->
+    console.log number
+    endings = [ {ending: ' ns', amount: Math.pow(10, -9)},
+                {ending: ' μs', amount: Math.pow(10, -6)},
+                {ending: ' ms', amount: Math.pow(10, -3)},
+                {ending: ' s', amount: 1},
+                {ending: ' min.', amount: 60},
+                {ending: ' hours', amount: 60*60},
+                {ending: ' days', amount: 60*60*24},
+                {ending: ' years', amount: 60*60*24*365}]
+    for i in [0..endings.length]
+        if i == 0
+            if number < endings[0].amount
+                return Math.round(number/endings[0].amount) + endings[0].ending
+        else if i == endings.length-1
+            return Math.round(number/endings[i].amount) + endings[i].ending
+
+        if endings[i].amount <= number < endings[i+1].amount
+            return Math.round(number/endings[i].amount) + endings[i].ending
+
+
+

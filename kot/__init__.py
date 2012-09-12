@@ -166,7 +166,7 @@ def login():
         user = query_db('SELECT * FROM users WHERE uname=%s',
                 [request.form['uname']], one=True)
         if user is None:
-            flash('No such user.', 'info')
+            flash('No such user.', 'error')
         elif user['passwd'] == (
                 sha256(request.form['passwd'] + 
                     app.config['SALT']).hexdigest()):
@@ -183,7 +183,7 @@ def login():
         else:
             flash('Wrong password.', 'error')
 
-    next = None if not request.args['next'] else request.args['next']
+    next = None if not 'next' in request.args else request.args['next']
     return render_template('login.html', next=next)
 
 @app.route('/logout')
@@ -282,6 +282,29 @@ def settings():
 
     return render_template('settings.html', colours=colours, 
                            current=current, user_files=user_files)
+
+# Changes the email for the current user
+@app.route('/_change_email', methods=['POST'])
+@login_required
+def change_email():
+    ret = query_db("UPDATE users SET email=%s WHERE id=%s",
+                   [request.form['new_email'],session['uid']])
+    return jsonify(result=ret)
+
+# Changes the password for the current user
+@app.route('/_change_password', methods=['POST'])
+@login_required
+def change_password():
+    old_pass = query_db('SELECT passwd FROM users WHERE id=%s',
+                        [session['uid']], one=True)['passwd']
+    if sha256(request.form['old_pass']+app.config['SALT']).hexdigest()!=old_pass:
+        return jsonify(different_pass=True)
+
+    ret = query_db('UPDATE users SET passwd=%s WHERE id=%s',
+            [sha256(request.form['new_pass'] + app.config['SALT']).hexdigest(),
+             session['uid']])
+    return jsonify(result=ret)
+
 
 # Get the current avatar image
 @app.route('/_avatar_get', methods=['POST'])

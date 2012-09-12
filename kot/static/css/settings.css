@@ -82,26 +82,38 @@ input {
 
 .setting {
     margin-top: 10px;
-    background-color: #EEEEEE;
+    background-color: #E5E5E5;
     height: auto;
     padding: 5px;
 }
 
 .file_quota.setting {
     height: 50px;
+}
 
 .setting_header {
     width: 100%;
-    text-decoration: italic;
+    font-weight: bold;
+    font-size: 1.2em;
+    line-height: 1.2em;
     float: left;
+
+    margin-bottom: 5px;
 }
 
 .progress {
     width: 100%;
-    float: right;
-    position: relative;
 }
 
-.percent_display {
-    margin-left: 10px;
+#pass_strength {
+    width: 130px;
+    height: 58px;
+
+    float: right;
+    font-size 9px;
+    line-height: 14px;
+}
+
+#password_submit_button {
+    margin-top: 49px;
 }

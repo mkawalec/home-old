@@ -99,6 +99,10 @@ setup_structure = () ->
     $(misc_header).text 'Various settings:'
     misc.appendChild misc_header
 
+    # Avatar alerts holder
+    misc_alert = document.createElement 'div'
+    $(misc_alert).attr 'id', 'misc_alert'
+
     # File quota
     file_quota = document.createElement 'div'
     $(file_quota).attr 'class', 'file_quota setting'
@@ -122,10 +126,130 @@ setup_structure = () ->
     progress_bar.appendChild percent_disp
 
     file_quota.appendChild progress_bar
-    misc.appendChild file_quota
 
+    # Email change
+    email_change = document.createElement 'div'
+    $(email_change).attr 'class', 'email_change setting'
+
+    email_change_header = document.createElement 'div'
+    $(email_change_header).attr 'class', 'setting_header email_change_header'
+    $(email_change_header).text 'Change your email:'
+
+    email1 = document.createElement 'input'
+    $(email1).attr 'type', 'text'
+    $(email1).attr 'class', 'setting_input input-medium'
+    $(email1).attr 'placeholder', 'New email'
+    $(email1).attr 'data-field-id', 'email1'
+    $(email1).bind 'focus', (event) ->
+        $(this).bind 'keydown', (event) ->
+            if event.which == 13
+                event.preventDefault()
+                $('#email_submit_button')[0].click()
+
+    $(email1).bind 'blur', (event) ->
+        $(this).unbind 'keydown'
+
+    email2 = document.createElement 'input'
+    $(email2).attr 'type', 'text'
+    $(email2).attr 'class', 'setting_input input-medium'
+    $(email2).attr 'placeholder', 'New email again'
+    $(email2).attr 'data-field-id', 'email2'
+    $(email2).bind 'focus', (event) ->
+        $(this).bind 'keydown', (event) ->
+            if event.which == 13
+                event.preventDefault()
+                $('#email_submit_button')[0].click()
+
+    $(email2).bind 'blur', (event) ->
+        $(this).unbind 'keydown'
+
+    email_submit_button = document.createElement 'button'
+    $(email_submit_button).attr 'class', 'btn btn-small btn-primary'
+    $(email_submit_button).attr 'id', 'email_submit_button'
+    $(email_submit_button).text 'Change'
+    
+    email_change.appendChild email_change_header
+    email_change.appendChild email1
+    email_change.appendChild email2
+    email_change.appendChild email_submit_button
+    
+    # Password change
+    password_change = document.createElement 'div'
+    $(password_change).attr 'class', 'password_change setting'
+
+    password_change_header = document.createElement 'div'
+    $(password_change_header).attr 'class', 'setting_header password_change_header'
+    $(password_change_header).text 'Change your password:'
+
+    password0 = document.createElement 'input'
+    $(password0).attr 'type', 'password'
+    $(password0).attr 'class', 'setting_input input-medium'
+    $(password0).attr 'placeholder', 'Old password'
+    $(password0).attr 'data-field-id', 'password0'
+    $(password0).bind 'focus', (event) ->
+        $(this).bind 'keydown', (event) ->
+            if event.which == 13
+                event.preventDefault()
+                $('#password_submit_button')[0].click()
+
+    $(password0).bind 'blur', (event) ->
+        $(this).unbind 'keydown'
+
+    password1 = document.createElement 'input'
+    $(password1).attr 'type', 'password'
+    $(password1).attr 'class', 'setting_input input-medium'
+    $(password1).attr 'placeholder', 'New password'
+    $(password1).attr 'data-field-id', 'password1'
+    $(password1).bind 'focus', (event) ->
+        $(this).bind 'keyup', (event) ->
+            if event.which == 13
+                event.preventDefault()
+                $('#password_submit_button')[0].click()
+            else
+                show_pass_strength()
+
+    $(password1).bind 'blur', (event) ->
+        $(this).unbind 'keyup'
+
+    password2 = document.createElement 'input'
+    $(password2).attr 'type', 'password'
+    $(password2).attr 'class', 'setting_input input-medium'
+    $(password2).attr 'placeholder', 'New password again'
+    $(password2).attr 'data-field-id', 'password2'
+    $(password2).bind 'focus', (event) ->
+        $(this).bind 'keydown', (event) ->
+            if event.which == 13
+                event.preventDefault()
+                $('#password_submit_button')[0].click()
+
+    $(password2).bind 'blur', (event) ->
+        $(this).unbind 'keydown'
+
+    pass_submit_button = document.createElement 'button'
+    $(pass_submit_button).attr 'class', 'btn btn-small btn-primary'
+    $(pass_submit_button).attr 'id', 'password_submit_button'
+    $(pass_submit_button).text 'Change'
+
+    pass_strength = document.createElement 'div'
+    $(pass_strength).attr 'id', 'pass_strength'
+    
+    password_change.appendChild password_change_header
+    password_change.appendChild password0
+    password_change.appendChild password1
+    password_change.appendChild password2
+    password_change.appendChild pass_submit_button
+    password_change.appendChild pass_strength
+
+    misc.appendChild misc_alert
+    misc.appendChild file_quota
+    misc.appendChild email_change
+    misc.appendChild password_change
     holder.appendChild misc
- 
+    $(email_submit_button).bind 'click', () ->
+        submit_email(this)
+    $(pass_submit_button).bind 'click', () ->
+        submit_pass(this)
+
 
     #### User files ####
     files = document.createElement 'div'
@@ -157,6 +281,92 @@ setup_structure = () ->
     bind_events()
     populate_with_files()
     get_quota_usage()
+    return 0
+
+# Notifies the user about her password strength
+show_pass_strength = ->
+    password1 = $('[data-field-id=password1]')[0]
+    entropy = calculate_entropy password1.value
+
+    pass_strength = $('#pass_strength')
+    $(pass_strength).text "It would take #{nicefy(Math.pow(2,entropy-32))} on one standard PC to break your password"
+
+
+# Submits new password to the server, assuming that it passes some constraints
+submit_pass = (submit_button) ->
+    password0 = $('[data-field-id=password0]')[0]
+    password1 = $('[data-field-id=password1]')[0]
+    password2 = $('[data-field-id=password2]')[0]
+    
+    if $.trim(password1.value) != $.trim(password2.value)
+        misc_alert("The two passwords aren't the same")
+        return 0
+
+    # Not validating the password now, TODO
+    
+    $(submit_button).text 'Changing...'
+    $.ajax {
+        url: script_root + '/_change_password'
+        type: 'POST'
+        dataType: 'json'
+        data:
+            new_pass: $.trim(password1.value)
+            old_pass: $.trim(password0.value)
+        success: (data) ->
+            submit_button = $("#password_submit_button")[0]
+            $(submit_button).text 'Change'
+            password_change = $('div.password_change.setting')[0]
+            
+            if data.different_pass
+                status_notify password_change, 'error'
+                misc_alert("The old password is incorrect")
+                return -1
+
+            status_notify password_change, 'success'
+
+            $('[data-field-id=password0]')[0].value = ''
+            $('[data-field-id=password1]')[0].value = ''
+            $('[data-field-id=password2]')[0].value = ''
+        error: (data) ->
+            $(submit_button).text 'Change'
+            
+            password_change = $('div.password_change.setting')[0]
+            status_notify password_change, 'error'
+    }
+
+# Submits new email to the server, assuming that it passes some constraints
+submit_email = (submit_button) ->
+    email1 = $('[data-field-id=email1]')[0]
+    email2 = $('[data-field-id=email2]')[0]
+    
+    if $.trim(email1.value) != $.trim(email2.value)
+        misc_alert("The two emails aren't the same")
+        return 0
+
+    # Not validating the email now, TODO
+    
+    $(submit_button).text 'Changing...'
+    $.ajax {
+        url: script_root + '_change_email'
+        type: 'POST'
+        dataType: 'json'
+        data:
+            new_email: $.trim(email1.value)
+        success: (data) ->
+            submit_button = $("#email_submit_button")[0]
+            $(submit_button).text 'Change'
+            
+            email_change = $('div.email_change.setting')[0]
+            status_notify email_change, 'success'
+
+            $('[data-field-id=email2]')[0].value = ''
+        error: (data) ->
+            console.log 'blah'
+            $(submit_button).text 'Change'
+            
+            email_change = $('div.email_change.setting')[0]
+            status_notify email_change, 'error'
+    }
 
 
 # Gets the quota usage from the server and sets the progress bar
@@ -226,6 +436,7 @@ populate_with_files = ->
         table_row.appendChild delete_button_wrapper
 
         table_body.appendChild table_row
+
 
 # Gets a file with a specified id
 get_file = (file_id) ->
@@ -403,7 +614,25 @@ avatar_alert = (message) ->
 
     alert.appendChild close_button
     alert.appendChild message_wrapper
+    $(alert).hide()
     $('#avatar_alert')[0].appendChild alert
+    $(alert).show 'shake', 'fast'
+
+misc_alert = (message) ->
+    alert = document.createElement 'div'
+    $(alert).attr 'class', 'alert'
+    close_button = document.createElement 'button'
+    $(close_button).attr 'class', 'close'
+    $(close_button).attr 'data-dismiss', 'alert'
+    $(close_button).text 'x'
+    message_wrapper = document.createElement 'div'
+    $(message_wrapper).text message
+
+    alert.appendChild close_button
+    alert.appendChild message_wrapper
+    $(alert).hide()
+    $('#misc_alert')[0].appendChild alert
+    $(alert).show 'shake', 'fast'
 
 # File sender
 send_file = (files) ->
@@ -554,7 +783,6 @@ class Stack
 update_progress = (event) ->
     if event.lengthComputable
         percent = event.loaded/event.total
-        console.log percent + '%'
     else
         console.log 'error computing length'
 
