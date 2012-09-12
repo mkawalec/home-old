@@ -1,6 +1,26 @@
 {% extends "layout.html" %}
 
 {% block header %}
+<script type=text/javascript>
+    var files = [
+    {% for file in user_files %}
+        {
+        'filename':     "{{ file.filename }}",
+        'mimetype':     "{{ file.mimetype }}",
+        'size':         "{{ file.size }}",
+        'id':           {{ file.id }},
+        'event_name':   "{{ file.name }}",
+        'event_date':   new Date({{ file.date.year }},{{ file.date.month-1 }},
+                                 {{ file.date.day }},{{ file.date.hour }},
+                                 {{ file.date.minute }},{{ file.date.second }},
+                                 {{ file.date.microsecond }})
+        },
+    {% endfor %}
+    ];
+
+</script>
+
+
 <script type=text/javascript src="{{ url_for('static', filename='js/helpers.js') }}"></script>
 <script type=text/javascript src="{{ url_for('static', filename='js/settings.js') }}"></script>
 <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/settings.css') }}"/>

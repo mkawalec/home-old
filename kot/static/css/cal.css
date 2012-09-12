@@ -7,7 +7,7 @@
 
 #buttons_holder     { 
     float: right; 
-    width: 200px;
+    width: 220px;
 }
 
 #calendar_display   { 
@@ -315,3 +315,42 @@ textarea.edit-field {
 .popover {
     z-index: 5000 !important;
 }
+
+.permalink {
+    width: 130px;
+    margin-top: 5px;
+}
+
+.tooltip-inner {
+    width: 150px;
+}
+
+.progress_wrapper {
+    position: absolute;
+    left: 0; top: 0;
+    z-index: 10;
+    overflow: hidden;
+}
+
+.progress_indicator {
+    position: absolute;
+    left: 0; top: 0;
+    background-color: black;
+    opacity: 0.8;
+}
+
+.progress_info_box {
+    position: absolute;
+    left: 10px; top: 10px;
+    width: 40px; height: 40px;
+
+    background-color: black;
+    color: white;
+    opacity: 0.7;
+
+    text-align: center;
+    text-size: 11px;
+    line-height: 13px;
+    overflow: hidden;
+}
+

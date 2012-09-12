@@ -5,4 +5,13 @@
 - gdy napisane przez interfejs, też wtedy wrzucane na gita? (jak zrobić
   różnych autorów?)
 
-Add attendees to be in the QR code.
+- Add attendees to be in the QR code.
+- After having hashtag history working in calendar, the event name on
+  settings page should direct to an appropriate event in the calendar
+- hovering over an item on a filelist (in settings) shows the proportion
+  of quota space taken by this file
+
+Known bugs:
+- dragging an event to the same place on the calendar moves an event
+  back by 30 minutes
+- the 'drop files here' label on dropbox moves up/down with the files

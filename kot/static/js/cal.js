@@ -267,6 +267,8 @@ var calendar = {
 
         // Makes an async request to the server and saves event details
         json_event_save: function(event_id){
+            events[event_id]['date'].setSeconds(0);
+            events[event_id]['date'].setMilliseconds(0);
             $.ajax({
                 url: script_root + '/_event_save',
                 type: 'POST',
@@ -288,6 +290,8 @@ var calendar = {
 
         // Creates the event on the server
         json_create_event: function(event){
+            event['date'].setSeconds(0);
+            event['date'].setMilliseconds(0);
             $.ajax({
                 url: script_root + '_event_create',
                 type: 'POST',
@@ -685,7 +689,6 @@ var calendar = {
                     
                     events.push(new_event);
                     //calendar.helpers.sort_events();
-                    calendar.draw_day();
 
                     // Now, IMPLEMENT syncing with the server
                     calendar.helpers.json_create_event(new_event)
@@ -882,10 +885,10 @@ var calendar = {
                             snapMode: 'outer',
                             snapTolerance: 12,
                             stop: function(e, ui){
-                                var delta = Math.ceil((ui.position['top']-ui.originalPosition['top'])/21)*30;
-                                var i = parseInt($(this).attr('id').slice(6));
-                                // For some reason
-                                if(delta > 0)
+                                var delta = Math.ceil((ui.position['top']-ui.originalPosition['top'])/22)*30;
+                                var i = calendar.helpers.get_event_iter(parseInt($(this).attr('id').slice(6)));
+                                console.log(delta);
+                                if(delta <= 0)
                                     delta -= 30;
                                 var date = events[i]['date'];
                                 date.setMinutes(date.getMinutes()+delta);
@@ -893,7 +896,7 @@ var calendar = {
                                 // Send the updated event to server
                                 calendar.helpers.json_event_save(i);
                                 // Prevent the modal
-                                calendar.prevent.push('modal_' + i);
+                                calendar.prevent.push('modal_' + events[i]['id']);
                                 calendar.draw_events_day();
                             }
                         });
@@ -907,14 +910,14 @@ var calendar = {
                             start: function(e, ui){
                             },
                             stop: function(e, ui){
-                                var i = parseInt($(this).attr('id').slice(6));
+                                var i = calendar.helpers.get_event_iter(parseInt($(this).attr('id').slice(6)));
 
-                                var duration = Math.ceil(this.offsetHeight/21)*30;
-                                events[parseInt($(this).attr('id').slice(6))]['duration'] = duration;
+                                var duration = Math.ceil(this.offsetHeight/22)*30;
+                                events[i]['duration'] = duration;
                                 // Send the updated event to server
                                 calendar.helpers.json_event_save(i);
                                 // Prevent the modal
-                                calendar.prevent.push('modal_' + i);
+                                calendar.prevent.push('modal_' + events[i]['id']);
 
                                 calendar.draw_events_day();
                             },
@@ -1311,8 +1314,6 @@ var calendar = {
 
     // Create and bind the tooltips for the thumbnail
     bind_tooltips: function(thumbnail){
-        console.log('binding');
-        console.log(thumbnail);
 
         $(thumbnail).attr('rel', 'tooltip');
         var tooltip_contents = document.createElement('div');
@@ -1328,11 +1329,20 @@ var calendar = {
 
         
         var get_button = document.createElement('button');
-        $(get_button).attr('class', 'btn btn-success btn-mini');
+        $(get_button).attr('class', 'btn btn-success btn-mini get_button');
         $(get_button).attr('data-id', $(thumbnail).attr('data-id'));
+        $(get_button).attr('data-file_id', $(thumbnail).attr('data-file_id'));
         $(get_button).text('Get this file!');
         $(get_button).attr('style', 'margin-right:5px;');
         tooltip_contents.appendChild(get_button);
+
+        // Permalink
+        var permalink = document.createElement('input');
+        $(permalink).attr('type', 'text');
+        $(permalink).attr('value',
+                          url_root+'get_file/'+$(thumbnail).attr('data-file_id'));
+        $(permalink).attr('class', 'permalink uneditable-input');
+        tooltip_contents.appendChild(permalink);
 
         $(thumbnail).attr('title', tooltip_contents.innerHTML);
 
@@ -1350,18 +1360,37 @@ var calendar = {
                 $(delete_button).bind('click', 
                                       {file_id: $(thumbnail).attr('data-file_id')},
                                       function(event){
-                    console.log('clicked');
                     var thumbnail = $('[data-file_id='+event.data.file_id+'].file_thumbnail')[0];
                     $(thumbnail).tooltip('hide');
                     calendar.delete_file(event.data.file_id);
                 });
+
+                // Bind the get button
+                var get_button = $('[data-file_id='+event.data.file_id+'].get_button')[0];
+                $(get_button).bind('click', 
+                                      {file_id: $(thumbnail).attr('data-file_id')},
+                                      function(event){
+                    var thumbnail = $('[data-file_id='+event.data.file_id+'].file_thumbnail')[0];
+                    $(thumbnail).tooltip('hide');
+                    calendar.get_file(event.data.file_id);
+                });
+                
             });
         }
     },
 
+    // Gets the file with a given id
+    get_file: function(file_id){
+        var frame = document.createElement('iframe');
+        $(frame).attr('width', 1);
+        $(frame).attr('height', 1);
+        $(frame).attr('frameborder', 0);
+        $(frame).attr('src', script_root + '/get_file/'+file_id);
+        $('body')[0].appendChild(frame);
+    },
+
     // Delete the file with a given file_id
     delete_file: function(file_id){
-        console.log('deleting '+file_id);
             $.ajax({
                 url: script_root + '/_delete_file/'+file_id,
                 type: 'DELETE',
@@ -1372,6 +1401,8 @@ var calendar = {
                         var dropbox = $('[data-id='+$(this).attr('data-id')+'].file_dropbox')[0];
                         dropbox.removeChild(this);
                     });
+                    used_quota = used_quota;
+                    quota = quota;
                 }
             });
     },
@@ -1413,12 +1444,16 @@ var calendar = {
             $(filename).attr('class', 'filename');
             $(filename).attr('data-id', data_id);
             $(filename).attr('id', 'filename_'+timestamp);
-            var f_match = files[i].name.match(/.*\./)[0];
+            var f_match = files[i].name;
+            if(files[i].name.match(/.*\./))
+                f_match = files[i].name.match(/.*\./)[0];
+
             $(filename).text(f_match.slice(0, f_match.length-1));
             
-            var f_ext = files[i].name.match(/\..*/)[0];
+            var f_ext = '';
+            if(files[i].name.match(/\..*/))
+                f_ext = files[i].name.match(/\..*/)[0];
             f_ext = f_ext.slice(1, f_ext.length);
-            console.log(f_ext);
 
             thumbnail.appendChild(filename);
 
@@ -1471,7 +1506,6 @@ var calendar = {
 
                         var header = 'data:'+data.mimetype+';base64,'
                         img.src = header + data.thumb;
-                        console.log(img);
                         thumbnail.appendChild(img);
                     }
                 });
@@ -1499,6 +1533,42 @@ var calendar = {
         var fd = new FormData();
         fd.append('file', file);
         var thumbnail = $('#file_thumbnail_'+timestamp)[0];
+        
+        // Append the progress display div
+        var width = thumbnail.offsetWidth;
+        var height = thumbnail.offsetHeight;
+        var prog_wrapper = document.createElement('div');
+        $(prog_wrapper).attr('class', 'progress_wrapper');
+        $(prog_wrapper).attr('id', 'progress_wrapper_'+timestamp);
+        $(prog_wrapper).attr('style', 'width:'+width+'px;'+
+                                      'height:'+height+'px;')
+        var prog_indicator = document.createElement('div');
+        $(prog_indicator).attr('class', 'progress_indicator');
+        $(prog_indicator).attr('id', 'progress_indicator_'+timestamp);
+        $(prog_indicator).attr('style', 'width:'+width+'px;'+
+                                        'height:'+height+'px;')
+        var info_box = document.createElement('div');
+        $(info_box).attr('class', 'progress_info_box');
+        $(info_box).attr('id', 'progress_info_box_'+timestamp);
+        
+        prog_wrapper.appendChild(prog_indicator);
+        prog_wrapper.appendChild(info_box);
+        thumbnail.appendChild(prog_wrapper);
+
+        if(parseInt(used_quota)+file.size > parseInt(quota)){
+            thumbnail.removeChild(thumbnail.children[thumbnail.children.length-1]);
+            alert('Uploading that file would exceed your disk quota!');
+
+            $(thumbnail).hide('highlight', function(){
+                var dropbox = $('[data-id='+
+                                $(this).attr('data-id')+
+                                '].file_dropbox')[0];
+                dropbox.removeChild(this);
+            });
+
+            return -1;
+        }
+
 
         $.ajax({
             url: script_root + '_save_file/'+id+'/'+timestamp,
@@ -1506,18 +1576,101 @@ var calendar = {
             processData: false,
             contentType: false,
             data: fd,
+            xhr: function() {
+                var xhr = $.ajaxSettings.xhr();
+                xhr.timestamp = timestamp;
+                xhr.upload.addEventListener('progress', 
+                                            function(e){
+                                                calendar.check_progress(timestamp,e);
+                                            },
+                                            false);
+                return xhr;
+            },
             success: function(data){
-                var thumbnail = $('#file_thumbnail_'+timestamp)[0];
-                console.log(thumbnail);
+                var thumbnail = $('#file_thumbnail_'+data.timestamp)[0];
+
+                // If the quota was exceeded
+                if(data.quota_exceeded){
+                    // Remove the progress indicator
+                    thumbnail.removeChild(thumbnail.children[thumbnail.children.length-1]);
+                    status_notify(thumbnail, 'error');
+                    alert("Uploading that file would exceed your disk quota!");
+                    $(thumbnail).hide('highlight', function(){
+                        var dropbox = $('[data-id='+
+                                        $(this).attr('data-id')+
+                                        '].file_dropbox')[0];
+                        dropbox.removeChild(this);
+                    });
+                }
+
+
                 $(thumbnail).attr('data-file_id',data.file_id);
+
+                // Remove the progress indicator
+                thumbnail.removeChild($('#progress_wrapper_'+data.timestamp)[0]);
+
+                // Bind the tooltips
                 calendar.bind_tooltips(thumbnail);
 
                 status_notify(thumbnail, 'success');
+
+                // And set the quota
+                quota = data.quota;
+                used_quota = used_quota;
             },
             error: function(data){
+                console.log(data);
+                var thumbnail = $('#file_thumbnail_'+timestamp)[0];
+                // TODO: Error should remove the file display too
+
+                // Remove the progress indicator
+                thumbnail.removeChild(thumbnail.children[thumbnail.children.length-1]);
+
                 status_notify(thumbnail, 'error');
+                $(thumbnail).hide('highlight', function(){
+                    var dropbox = $('[data-id='+
+                                    $(this).attr('data-id')
+                                    +'].file_dropbox')[0];
+                    dropbox.removeChild(this);
+                });
+
             }
         });
+    },
+
+    // Check and notify about upload progress
+    check_progress: function(timestamp, event){
+        var prog_ind = $('#progress_indicator_'+timestamp);
+        var info_box = $('#progress_info_box_'+timestamp);
+        var height = 60;
+        var width = 60;
+
+        if(event.lengthComputable){
+            var prop = event.loaded/event.total;
+            var top_off = height*prop;
+            var speed = -1;
+            var eta = -1;
+
+            // Set the details for the speed computations
+            if($(info_box).attr('data-loaded')){
+                speed = event.loaded-parseInt($(info_box).attr('data-loaded'));
+                speed /= event.timeStamp-parseInt($(info_box).attr('data-loaded-timestamp'));
+                speed /= 1024/1000;
+                speed = Math.round(speed);
+
+                eta = Math.round((event.total-event.loaded)/speed/1000*1024/1000);
+            }
+            $(info_box).attr('data-loaded', event.loaded);
+            $(info_box).attr('data-loaded-timestamp', event.timeStamp);
+            
+            $(info_box).text(Math.round(prop*100)+'%\n'+
+                             speed+'\n'+
+                             eta + 's');
+
+            $(prog_ind).attr('style', 'width:'+width+'px;'+
+                                       'height:'+height+'px;'+
+                                       'top:'+top_off+'px;');
+        }
     },
 
 
@@ -1611,6 +1764,7 @@ var calendar = {
         if(!this.prevented('field_save_and_remove_' + field_id)){
             // SYNC with server
             var field = document.getElementById(field_id);
+            var block_modal = $(field).attr('data-block-modal');
             var i = calendar.helpers.get_event_iter($(field).attr('data-i'));
             var id = $(field).attr('data-i');
             events[id][$(field).attr('data-fieldname')] =
@@ -1631,8 +1785,15 @@ var calendar = {
                     $(field).attr('data-parent'));
             parent.removeChild(field);
             parent.appendChild(static_field);
-            calendar.draw_events_day(true);
+            console.log(block_modal);
+            if(block_modal){
+                calendar.draw_events_day();
+            }
+            else
+                calendar.draw_events_day(true);
+
             calendar.bind_edit(static_field);
+
         }
     },
 
@@ -1734,6 +1895,7 @@ Date.prototype.toLocalLongTime = function(){
         seconds = '0' + seconds;
     return hours + ':' + minutes + ':' + seconds;
 }
+
 
 $(document).ready(function(){
     calendar.bootstrap();

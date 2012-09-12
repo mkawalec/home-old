@@ -13,9 +13,9 @@
 </script>
 
 
-
 <script type=text/javascript>
     var script_root = {{ request.script_root|tojson|safe }};
+    var url_root = {{ request.url_root|tojson|safe }};
     {% if session.logged_in %}
     var uid = {{ session['uid'] }};
     {% else %}

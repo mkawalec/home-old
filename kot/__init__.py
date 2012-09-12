@@ -36,7 +36,7 @@ SALT = 'sdfj323rf'
 PERMANENT_SESSION_LIFETIME = timedelta(days=60)
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
-MAX_CONTENT_LENGTH = 40 * 1024 * 1024
+MAX_CONTENT_LENGTH = 400 * 1024 * 1024
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -239,6 +239,13 @@ def calendar():
                       "users u WHERE c.id=u.colour AND u.id=e.owner AND "
                       "u.id=%s)",
                       [session['uid'], session['uid']])
+    
+    ## And the disk quota
+    used_quota = query_db('SELECT SUM(size) FROM event_files WHERE '
+                          'uploaded_by=%s', [session['uid']], one=True)['sum']
+    quota = query_db('SELECT file_quota FROM users WHERE id=%s',
+                     [session['uid']], one=True)['file_quota']
+
     ## For each of the events, get the list of the attendees
     for event in events:
         event['attendees'] = query_db('SELECT u.id, u.uname '
@@ -254,7 +261,9 @@ def calendar():
     colours = query_db('SELECT c.colour,c.border FROM colours c, users u '
                        'WHERE u.colour = c.id AND u.id=%s',
                        [session['uid']], one=True)
-    return render_template('calendar.html',events=events,colours=colours)
+    return render_template('calendar.html',events=events,
+                           colours=colours, quota=str(quota),
+                           used_quota=str(used_quota))
 
 # User settings page
 @app.route('/settings')
@@ -265,7 +274,14 @@ def settings():
                        [session['uid']])
     current = query_db("SELECT colour FROM users WHERE id=%s",
             [session['uid']], one=True)['colour']
-    return render_template('settings.html', colours=colours, current=current)
+    user_files = query_db('SELECT f.filename,f.mimetype,f.size,f.id,e.name,e.date '
+                          'FROM event_files f, events e, users u '
+                          'WHERE u.id=%s AND f.uploaded_by=u.id AND '
+                          'e.id=f.event',[session['uid']])
+    print user_files
+
+    return render_template('settings.html', colours=colours, 
+                           current=current, user_files=user_files)
 
 # Get the current avatar image
 @app.route('/_avatar_get', methods=['POST'])
@@ -322,6 +338,9 @@ def save_avatar():
     extension = re.search('\..*', str(avatar.filename)).group(0)
     filename = 'static/avatars/' + str(session['uid']) 
     avatar.save(filename + extension)
+    avatar = Image.open(filename + extension)
+    avatar = avatar.resize(get_size(avatar.getbbox(), 200), Image.ANTIALIAS)
+    avatar.save(filename + extension)
 
     # Generate a thumbnail
     avatar = Image.open(filename + extension)
@@ -336,14 +355,42 @@ def save_avatar():
 
     return jsonify(result=ret)
 
+# Sends a file quota for a logged in user
+@app.route('/_get_quota')
+@login_required
+def get_quota():
+    used_quota = query_db('SELECT SUM(size) FROM event_files WHERE '
+                          'uploaded_by=%s', [session['uid']], one=True)['sum']
+    quota = query_db('SELECT file_quota FROM users WHERE id=%s',
+                     [session['uid']], one=True)['file_quota']
+    return jsonify(used=str(used_quota), quota=str(quota))
+
+
 # Receive a file
 @app.route('/_save_file/<int:event_id>/<timestamp>', methods=['POST'])
 @login_required
 def save_file(event_id, timestamp):
+    # A check of users quota
+    used_quota = query_db('SELECT SUM(size) FROM event_files WHERE '
+                          'uploaded_by=%s', [session['uid']], one=True)['sum']
+    quota = query_db('SELECT file_quota FROM users WHERE id=%s',
+                     [session['uid']], one=True)['file_quota']
+    stream = request.files['file'].stream
+    stream.seek(0, os.SEEK_END)
+    size = stream.tell()
+    stream.seek(0)
+
+    if int(used_quota)+int(size) > int(quota):
+        # The total size exceeds the quota!
+        return jsonify(quota_exceeded=True,timestamp=timestamp)
+
     event_file = request.files['file']
-    extension = re.search('\..*', str(event_file.filename)).group(0)
-    real_filename = re.search('.*\.',str(event_file.filename)).group(0)[:-1]
-    print real_filename
+    real_filename = event_file.filename
+    extension = ''
+
+    if str(event_file.filename).find('.') != -1:
+        extension = re.search('\..*', str(event_file.filename)).group(0)
+        real_filename = re.search('.*\.',str(event_file.filename)).group(0)[:-1]
     filename = gen_filename()
 
     # Checking if the file already exists
@@ -354,17 +401,35 @@ def save_file(event_id, timestamp):
         pass
 
     event_file.save('static/event-files/'+filename+extension)
+    size = os.path.getsize('static/event-files/'+filename+extension)
     (mimetype, enc) = mimetypes.guess_type('static/event-files/'+filename+extension)
 
     ret = query_db('INSERT INTO event_files (event,file,filename,'
-                   'uploaded_by,mimetype) VALUES (%s,%s,%s,%s,%s)',
+                   'uploaded_by,mimetype,size) VALUES (%s,%s,%s,%s,%s,%s)',
                    [event_id, 'static/event-files/'+filename+extension,
-                    real_filename,session['uid'],mimetype])
+                    real_filename,session['uid'],mimetype,size])
     file_id = query_db('SELECT id FROM event_files WHERE event=%s AND file=%s',
                        [event_id, 'static/event-files/'+filename+extension],
                        one=True)['id']
 
-    return jsonify(result=ret, file_id=file_id, timestamp=timestamp)
+    return jsonify(result=ret, file_id=file_id, 
+                   timestamp=timestamp, quota=str(quota),
+                   used_quota=str(used_quota))
+
+# Send a file to a user
+@app.route('/get_file/<int:file_id>')
+@login_required
+def get_file(file_id):
+    data = query_db('SELECT file,filename,mimetype FROM event_files WHERE id=%s',
+                    [file_id], one=True)
+    path = data['file']
+    
+    filename = data['filename']
+    if str(path).find('.') != -1:
+        filename = data['filename'] + re.search('\..*', str(path)).group(0)
+
+    return send_file(path,as_attachment=True,
+                     attachment_filename=filename)
 
 # Delete a file
 @app.route('/_delete_file/<int:file_id>', methods=['DELETE'])
@@ -375,7 +440,13 @@ def delete_file(file_id):
     os.remove(path)
 
     ret = query_db('DELETE FROM event_files WHERE id=%s', [file_id])
-    return jsonify(result=ret, file_id=file_id)
+    
+    used_quota = query_db('SELECT SUM(size) FROM event_files WHERE '
+                          'uploaded_by=%s', [session['uid']], one=True)['sum']
+    quota = query_db('SELECT file_quota FROM users WHERE id=%s',
+                     [session['uid']], one=True)['file_quota']
+    return jsonify(result=ret, file_id=file_id,
+                   quota=str(quota), used_quota=str(used_quota))
 
 @app.route('/_get_filelist/<int:event_id>')
 @login_required
@@ -517,8 +588,13 @@ def create_event():
 # Deletes an event
 @app.route('/_event_delete/<int:which>', methods=['DELETE'])
 def delete_event(which):
-    ret = query_db('DELETE FROM events WHERE id=%s',
-                   [which])
+    files = query_db('SELECT file FROM event_files WHERE event=%s',[which])
+    for file in files:
+        os.remove(file['file'])
+    
+    ret = query_db('DELETE FROM event_files WHERE event=%s', [which])
+    ret = query_db('DELETE FROM attendees WHERE event=%s', [which])
+    ret = query_db('DELETE FROM events WHERE id=%s', [which])
     return jsonify(data=ret,which=which)
 
 # Modifies and attendant list

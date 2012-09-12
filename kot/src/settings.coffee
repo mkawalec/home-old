@@ -38,7 +38,7 @@ setup_structure = () ->
 
     #### Avatar selector ####
     avatar = document.createElement 'div'
-    $(avatar).attr 'class', 'span5 avatar_selector'
+    $(avatar).attr 'class', 'span4 avatar_selector'
 
     avatar_header = document.createElement 'div'
     $(avatar_header).attr 'class', 'header'
@@ -70,14 +70,14 @@ setup_structure = () ->
 
     # Delete button
     delete_button = document.createElement 'button'
-    $(delete_button).attr 'class', 'btn btn-danger'
+    $(delete_button).attr 'class', 'btn btn-danger btn-small'
     $(delete_button).attr 'id', 'delete_button'
-    $(delete_button).text 'Delete your avatar'
+    $(delete_button).text 'Delete'
     
     send_button = document.createElement 'button'
-    $(send_button).attr 'class', 'btn btn-primary'
+    $(send_button).attr 'class', 'btn btn-primary btn-small'
     $(send_button).attr 'id', 'send_button'
-    $(send_button).text 'Choose file'
+    $(send_button).text 'New file'
 
     avatar_body.appendChild avatar_alert
     avatar_body.appendChild file_input
@@ -89,11 +89,171 @@ setup_structure = () ->
     avatar.appendChild avatar_header
     avatar.appendChild avatar_body
     holder.appendChild avatar
-   
+
+    #### Misc settings ####
+    misc = document.createElement 'div'
+    $(misc).attr 'class', 'span3 misc_settings'
+
+    misc_header = document.createElement 'div'
+    $(misc_header).attr 'class', 'header'
+    $(misc_header).text 'Various settings:'
+    misc.appendChild misc_header
+
+    # File quota
+    file_quota = document.createElement 'div'
+    $(file_quota).attr 'class', 'file_quota setting'
+
+    file_quota_header = document.createElement 'div'
+    $(file_quota_header).attr 'class', 'setting_header file_quota_header'
+    $(file_quota_header).text 'Your disk quota usage:'
+    file_quota.appendChild file_quota_header
+
+    progress_bar = document.createElement 'div'
+    $(progress_bar).attr 'class', 'progress'
+    $(progress_bar).attr 'id', 'file_quota_progress'
+    bar = document.createElement 'div'
+    $(bar).attr 'class', 'bar'
+    $(bar).attr 'style', 'width:0%;'
+    progress_bar.appendChild bar
+
+    percent_disp = document.createElement 'div'
+    $(percent_disp).attr 'class', 'percent_display'
+    $(percent_disp).text '%'
+    progress_bar.appendChild percent_disp
+
+    file_quota.appendChild progress_bar
+    misc.appendChild file_quota
+
+    holder.appendChild misc
+ 
+
+    #### User files ####
+    files = document.createElement 'div'
+    $(files).attr 'class', 'span12 user_files'
+
+    files_header = document.createElement 'div'
+    $(files_header).attr 'class', 'header'
+    $(files_header).text 'Your files:'
+    files.appendChild files_header
+
+    files_table = document.createElement 'table'
+    $(files_table).attr 'class', 'table files_table table-striped table-condensed'
+    $(files_table).attr 'caption', 'A table listing all your files'
+
+    table_header = document.createElement 'thead'
+    $(table_header).html '<tr><td>File name</td><td>Mime type</td><td>Size</td><td>Event name</td><td>Event date</td><td>Get file</td><td>Delete file</td></tr>'
+
+    table_body = document.createElement 'tbody'
+    $(table_body).attr 'class', 'files_table_body'
+    files_table.appendChild table_header
+    files_table.appendChild table_body
+    files.appendChild files_table
+
+    holder.appendChild files
+
     #### General bookkeeping ####
     request_avatar()
     mark_selected()
     bind_events()
+    populate_with_files()
+    get_quota_usage()
+
+
+# Gets the quota usage from the server and sets the progress bar
+get_quota_usage = ->
+    $.ajax {
+        url: script_root + '_get_quota'
+        type: 'GET'
+        dataType: 'json'
+        success: (data) ->
+            progress_bar = $('#file_quota_progress div.bar')[0]
+            percent_disp = $('#file_quota_progress div.percent_display')[0]
+            progress = data.used/data.quota*100
+            $(percent_disp).text "#{Math.round(progress)}%"
+            $(progress_bar).animate({width: "#{progress}%"})
+        error: (data) ->
+            console.log 'blah'
+    }
+
+
+# Populates the filelist with user's files
+populate_with_files = ->
+    for file in files
+        table_body = $('.files_table_body')[0]
+        table_row = document.createElement 'tr'
+        $(table_row).attr 'data-id', file.id
+
+        file_name = document.createElement 'td'
+        $(file_name).text file.filename
+
+        file_mimetype = document.createElement 'td'
+        $(file_mimetype).text file.mimetype
+
+        file_size = document.createElement 'td'
+        $(file_size).text get_nice_size file.size
+
+        event_name = document.createElement 'td'
+        $(event_name).text file.event_name
+
+        event_date = document.createElement 'td'
+        $(event_date).text file.event_date.format_nicely()
+
+        get_button_wrapper = document.createElement 'td'
+        get_button = document.createElement 'button'
+        $(get_button).attr 'class', 'btn btn-success btn-small'
+        $(get_button).attr 'data-id', file.id
+        $(get_button).text 'Get this file!'
+        $(get_button).bind 'click', (event) ->
+            get_file $(this).attr('data-id')
+
+        get_button_wrapper.appendChild get_button
+
+        delete_button_wrapper = document.createElement 'td'
+        delete_button = document.createElement 'button'
+        $(delete_button).attr 'class', 'btn btn-danger btn-small'
+        $(delete_button).attr 'data-id', file.id
+        $(delete_button).text 'Remove this file'
+        $(delete_button).bind 'click', (event) ->
+            delete_file $(this).attr('data-id')
+        delete_button_wrapper.appendChild delete_button
+
+        table_row.appendChild file_name
+        table_row.appendChild file_mimetype
+        table_row.appendChild file_size
+        table_row.appendChild event_name
+        table_row.appendChild event_date
+        table_row.appendChild get_button_wrapper
+        table_row.appendChild delete_button_wrapper
+
+        table_body.appendChild table_row
+
+# Gets a file with a specified id
+get_file = (file_id) ->
+    frame = document.createElement 'iframe'
+    $(frame).attr 'width', 1
+    $(frame).attr 'height', 1
+    $(frame).attr 'frameborder', 0
+    $(frame).attr 'src', "#{script_root}/get_file/#{file_id}"
+    $('body')[0].appendChild frame
+
+
+# Deletes a file with a specified id 
+delete_file = (file_id) ->
+    $.ajax {
+        url: "#{script_root}/_delete_file/#{file_id}"
+        type: 'DELETE'
+        dataType: 'json'
+        success: (data) ->
+            table_row = $("tr[data-id=#{data.file_id}]")[0]
+            $(table_row).hide 'highlight', ()->
+                table_body = $('.files_table_body')[0]
+                table_body.removeChild this
+
+                get_quota_usage()
+        error: (data) ->
+            console.log 'oh snap'
+                
+    }
 
 # Marks the selected colour theme
 mark_selected = () ->

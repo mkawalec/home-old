@@ -89,3 +89,31 @@ rgb2hsv = (hex) ->
         sat = (val-x)/val
     return [hue,sat,val]
 
+# Returns a nicely formatted date
+Date::format_nicely = ->
+    year = this.getFullYear()
+    month = parseInt(this.getMonth())+1
+    day = this.getDate()
+    hours = this.getHours()
+    minutes = this.getMinutes()
+
+    if month < 10
+        month = '0' + month
+    if day < 10
+        day = '0' + day
+    if hours < 10
+        hours = '0' + hours
+    if minutes < 10
+        minutes = '0' + minutes
+    
+    return "#{year}/#{month}/#{day} #{hours}:#{minutes}"
+
+# Print a nice file size
+get_nice_size = (file_size) ->
+    console.log file_size
+    for app in ['B', 'KB', 'MB', 'GB', 'TB']
+        if file_size < 1024
+            return file_size + app
+        file_size = Math.round file_size/1024
+
+    return -1

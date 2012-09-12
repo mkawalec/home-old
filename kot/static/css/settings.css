@@ -59,8 +59,8 @@ input {
 }
 
 #file_dropbox {
-    width: 378px;
-    height: 200px;
+    width: 298px;
+    height: 150px;
     border: 1px dashed black;
     margin-top: 10px;
 
@@ -70,9 +70,38 @@ input {
 
 #dropbox_label {
     position: absolute;
-    width: 378px;
-    left: 0px; top: 82px;
+    width: 298px;
+    left: 0px; top: 45px;
     opacity: 0.4;
     text-align: center;
 }
 
+.files_table {
+    width: 100%;
+}
+
+.setting {
+    margin-top: 10px;
+    background-color: #EEEEEE;
+    height: auto;
+    padding: 5px;
+}
+
+.file_quota.setting {
+    height: 50px;
+
+.setting_header {
+    width: 100%;
+    text-decoration: italic;
+    float: left;
+}
+
+.progress {
+    width: 100%;
+    float: right;
+    position: relative;
+}
+
+.percent_display {
+    margin-left: 10px;
+}
