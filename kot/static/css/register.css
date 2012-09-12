@@ -17,3 +17,9 @@
     line-height: 45px;
     margin-bottom: 10px;
 }
+
+#pass_strength {
+    width: 150px;
+    height: 60px;
+    float: left;
+}

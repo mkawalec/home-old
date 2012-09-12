@@ -39,12 +39,17 @@
     <div class=container id=container>
         <div class=menu>
             {% if not session.logged_in %}
-            <a href="{{ url_for('login', next='None') }}">Login</a>
+            <a class=ra href="{{ url_for('login', next='None') }}">Login</a>
+            <a class=ra href="{{ url_for('register', next='None') }}">Register</a>
             {% else %}
-            <a href="{{ url_for('account') }}">Account</a>
             <a href="{{ url_for('calendar') }}">Calendar</a>
-            <a href="{{ url_for('add_user') }}">Add user</a>
-            <a href="{{ url_for('logout') }}">Logout</a>
+            <a href="{{ url_for('settings') }}">Settings</a>
+            <a class=ra href="{{ url_for('logout') }}">Logout</a>
+            {% endif %}
+        </div>
+        <div class="menu rmenu">
+            {% if not session.logged_in %}
+            {% else %}
             {% endif %}
         </div>
         

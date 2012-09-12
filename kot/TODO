@@ -10,8 +10,8 @@
   settings page should direct to an appropriate event in the calendar
 - hovering over an item on a filelist (in settings) shows the proportion
   of quota space taken by this file
+- Login/register should shake on validation errors (and be ajaxed)
+- Hashtag history
 
 Known bugs:
-- dragging an event to the same place on the calendar moves an event
-  back by 30 minutes
 - the 'drop files here' label on dropbox moves up/down with the files

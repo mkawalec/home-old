@@ -334,10 +334,14 @@ get_quota_usage = function() {
       progress_bar = $('#file_quota_progress div.bar')[0];
       percent_disp = $('#file_quota_progress div.percent_display')[0];
       progress = data.used / data.quota * 100;
-      $(percent_disp).text("" + (Math.round(progress)) + "%");
-      return $(progress_bar).animate({
-        width: "" + progress + "%"
-      });
+      if (typeof progress !== Number) {
+        return $(percent_disp).text('0%');
+      } else {
+        $(percent_disp).text("" + (Math.round(progress)) + "%");
+        return $(progress_bar).animate({
+          width: "" + progress + "%"
+        });
+      }
     },
     error: function(data) {
       return console.log('blah');

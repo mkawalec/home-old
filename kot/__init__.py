@@ -186,6 +186,43 @@ def login():
     next = None if not 'next' in request.args else request.args['next']
     return render_template('login.html', next=next)
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        if request.form['passwd1'] != request.form['passwd2']:
+            flash('The passwords are not the same', 'error')
+            return render_template('register.html',uname=request.form['uname'],
+                                   email=request.form['email'])
+
+        if len(request.form['passwd1']) == 0:
+            flash('The passwords are empty', 'error')
+            return render_template('register.html',uname=request.form['uname'],
+                                   email=request.form['email'])
+
+        if len(request.form['email']) == 0:
+            flash('The email is empty', 'error')
+            return render_template('register.html',uname=request.form['uname'])
+
+        if len(request.form['uname']) == 0:
+            flash('User name is empty', 'error')
+            return render_template('register.html',email=request.form['email'])
+
+        if  query_db('SELECT id FROM users WHERE uname=%s',
+                    [request.form['uname']], one=True) is not None:
+            flash('The username already exists', 'error')
+            return render_template('register.html',
+                                   email=request.form['email'])
+
+        query_db('INSERT INTO users (uname,passwd,email,colour,file_quota) '
+                 'VALUES (%s,%s,%s,%s,%s)',
+                 [request.form['uname'], 
+                  sha256(request.form['passwd1']+app.config['SALT']).hexdigest(),
+                  request.form['email'], 10, 1024*1024*5])
+        flash('Your account was created. Login to fine-tune your settings.', 
+              'success')
+        return redirect(url_for('settings'))
+    return render_template('register.html')
+
 @app.route('/logout')
 @login_required
 def logout():
@@ -207,22 +244,6 @@ def logout():
 def account():
     return render_template('home.html')
 
-@app.route('/add_user', methods=['GET', 'POST'])
-@login_required
-def add_user():
-    if request.method == 'POST':
-        ret = query_db('INSERT INTO users (uname, passwd) VALUES (%s, %s)',
-                [request.form['uname'], sha256(request.form['passwd'] + 
-                                        app.config['SALT']).hexdigest()])
-        if ret == 1:
-            flash('New user has been added!', 'success')
-        elif ret == -1:
-            flash('This username already exists!', 'error')
-        else:
-            flash('There was an error adding this person!', 'error')
-    
-    users = query_db('SELECT uname FROM users ORDER BY id ASC')
-    return render_template('add_user.html', users=users)
 
 @app.route('/calendar')
 @login_required
@@ -245,6 +266,8 @@ def calendar():
                           'uploaded_by=%s', [session['uid']], one=True)['sum']
     quota = query_db('SELECT file_quota FROM users WHERE id=%s',
                      [session['uid']], one=True)['file_quota']
+    if used_quota == None:
+        used_quota = 0
 
     ## For each of the events, get the list of the attendees
     for event in events:
@@ -386,6 +409,8 @@ def get_quota():
                           'uploaded_by=%s', [session['uid']], one=True)['sum']
     quota = query_db('SELECT file_quota FROM users WHERE id=%s',
                      [session['uid']], one=True)['file_quota']
+    if used_quota == None:
+        used_quota = 0
     return jsonify(used=str(used_quota), quota=str(quota))
 
 
@@ -398,6 +423,9 @@ def save_file(event_id, timestamp):
                           'uploaded_by=%s', [session['uid']], one=True)['sum']
     quota = query_db('SELECT file_quota FROM users WHERE id=%s',
                      [session['uid']], one=True)['file_quota']
+    if used_quota == None:
+        used_quota = 0
+
     stream = request.files['file'].stream
     stream.seek(0, os.SEEK_END)
     size = stream.tell()
@@ -468,6 +496,8 @@ def delete_file(file_id):
                           'uploaded_by=%s', [session['uid']], one=True)['sum']
     quota = query_db('SELECT file_quota FROM users WHERE id=%s',
                      [session['uid']], one=True)['file_quota']
+    if used_quota == None:
+        used_quota = 0
     return jsonify(result=ret, file_id=file_id,
                    quota=str(quota), used_quota=str(used_quota))
 

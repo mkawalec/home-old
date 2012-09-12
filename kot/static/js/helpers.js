@@ -190,7 +190,6 @@ calculate_entropy = function(pass) {
 
 nicefy = function(number) {
   var endings, i, _i, _ref;
-  console.log(number);
   endings = [
     {
       ending: ' ns',
@@ -216,6 +215,12 @@ nicefy = function(number) {
     }, {
       ending: ' years',
       amount: 60 * 60 * 24 * 365
+    }, {
+      ending: ' millenia',
+      amount: 60 * 60 * 24 * 365 * 1000
+    }, {
+      ending: ' billenia',
+      amount: 60 * 60 * 24 * 365 * 1000 * 1000
     }
   ];
   for (i = _i = 0, _ref = endings.length; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {

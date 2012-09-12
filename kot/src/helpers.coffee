@@ -149,7 +149,6 @@ calculate_entropy = (pass) ->
 
 # Return a nice string description of a number
 nicefy = (number) ->
-    console.log number
     endings = [ {ending: ' ns', amount: Math.pow(10, -9)},
                 {ending: ' μs', amount: Math.pow(10, -6)},
                 {ending: ' ms', amount: Math.pow(10, -3)},
@@ -157,7 +156,9 @@ nicefy = (number) ->
                 {ending: ' min.', amount: 60},
                 {ending: ' hours', amount: 60*60},
                 {ending: ' days', amount: 60*60*24},
-                {ending: ' years', amount: 60*60*24*365}]
+                {ending: ' years', amount: 60*60*24*365},
+                {ending: ' millenia', amount: 60*60*24*365*1000},
+                {ending: ' billenia', amount: 60*60*24*365*1000*1000}]
     for i in [0..endings.length]
         if i == 0
             if number < endings[0].amount
