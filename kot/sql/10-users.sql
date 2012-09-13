@@ -1,6 +1,7 @@
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     uname varchar NOT NULL UNIQUE,
+    real_name varchar,
     passwd varchar,
     email varchar,
     colour int REFERENCES colours(id),

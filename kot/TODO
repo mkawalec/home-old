@@ -15,3 +15,6 @@
 
 Known bugs:
 - the 'drop files here' label on dropbox moves up/down with the files
+
+GIT:
+git log filename
