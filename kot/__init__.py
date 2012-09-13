@@ -207,6 +207,11 @@ def register():
             flash('User name is empty', 'error')
             return render_template('register.html',email=request.form['email'])
 
+        if query_db('SELECT id FROM users WHERE email=%s',
+                    [request.form['email']], one=True) is not None:
+            flash('The email is already in use', 'error')
+            return render_template('register.html', uname=request.form['uname'])
+
         if  query_db('SELECT id FROM users WHERE uname=%s',
                     [request.form['uname']], one=True) is not None:
             flash('The username already exists', 'error')

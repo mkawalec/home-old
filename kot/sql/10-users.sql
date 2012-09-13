@@ -3,7 +3,7 @@ CREATE TABLE users (
     uname varchar NOT NULL UNIQUE,
     real_name varchar,
     passwd varchar,
-    email varchar,
+    email varchar NOT NULL UNIQUE,
     colour int REFERENCES colours(id),
     has_thumbnail boolean DEFAULT FALSE,
     avatar varchar UNIQUE,
