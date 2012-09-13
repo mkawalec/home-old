@@ -2,7 +2,7 @@
 var Pair, Stack, avatar_alert, bind_events, bootstrap, delete_avatar, delete_file, dropbox_drop, get_file, get_quota_usage, mark_selected, misc_alert, partition, populate_with_files, request_avatar, rollback_colour_change, save_colour, score_colour, send_file, setup_structure, show_pass_strength, sort_colours, submit_email, submit_pass, update_progress,
   _this = this;
 
-this.max_image_size = 1024 * 1024 * 5;
+this.max_image_size = 1024 * 1024 * 10;
 
 setup_structure = function() {
   var avatar, avatar_alert, avatar_body, avatar_header, avatar_thumbnail, bar, colour, colour_body, colour_picker, colour_picker_body, colour_picker_header, delete_button, dropbox_label, email1, email2, email_change, email_change_header, email_submit_button, file_dropbox, file_input, file_quota, file_quota_header, files, files_header, files_table, holder, misc, misc_alert, misc_header, pass_strength, pass_submit_button, password0, password1, password2, password_change, password_change_header, percent_disp, progress_bar, send_button, table_body, table_header, _i, _len;

@@ -3,11 +3,12 @@
 {% block header %}
 <link rel=stylesheet href="{{ url_for('static', filename='css/blog.css') }}" >
 <link rel=stylesheet href="{{ url_for('static', filename='css/sh_style.css') }}" >
+<script type="text/javascript" src="{{ url_for('static', filename='js/blog.js') }}" ></script>
 <script type="text/javascript"
   src="https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 </script>
-<script type=text/javascript href="{{ url_for('static', filename='js/sh_main.min.js') }}" ></script>
-<script type=text/javascript href="{{ url_for('static', filename='js/sh_cpp.min.js') }}" ></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/sh_main.min.js') }}" ></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/sh_cpp.min.js') }}" ></script>
 {% endblock %}
 
 {% block body %}

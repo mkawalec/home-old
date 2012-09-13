@@ -1,4 +1,4 @@
-@max_image_size = 1024*1024*5
+@max_image_size = 1024*1024*10
 
 
 # Setup the structure
