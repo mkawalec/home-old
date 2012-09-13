@@ -87,7 +87,6 @@ def get_meta(filename):
             if not isinstance(ret[2], datetime.datetime):
                 ret[2] = (line[line.find('Date:')+5:]).strip()
                 ret[2] = parse(ret[2])
-                print ret[2]
     return ret
 
 
@@ -120,7 +119,7 @@ def update():
     process.wait()
 
     # Get the posts 
-    posts = glob(posts_location + '*/post')
+    posts = glob(posts_location + '*/post.mkd')
     for post in posts:
         (title, tags, post, commits, author, time) = parse_file(post)
         query = 'SELECT id FROM blog_post WHERE '
