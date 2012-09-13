@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+
+{% block header %}
+<link rel=stylesheet href="{{ url_for('static', filename='css/blog.css') }}" >
+<script type="text/javascript"
+  src="https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+{% endblock %}
+
+{% block body %}
+<div id=title>My awesome blog</div>
+
+<div id=posts class="span8">
+    {% for post in posts %}
+    <div class=post>
+        <div class=post_header>
+            <div class=post_title>{{ post.title }}</div>
+            <div class='post_author det'><b>Author:</b> {{ post.uname }}</div>
+            <div class='timestamp det'><b>Created at:</b> {{ post.timestamp }}</div>
+            {% if post.edit_timestamp %}
+            <div class='edit_timestamp det'><b>Edited at:</b> {{ post.edit_timestamp }}</div>
+            {% endif %}
+            <br />
+            <div class='tags det'><div class=tag_b>Tags:</div> 
+                {% for tag in post.tags %}
+                <div class=tag>{{ tag.tag }}</div>
+                {% endfor %}
+            </div>
+            <br />
+            <hr />
+        </div>
+        <div class=contents>{{ post.contents|safe }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+

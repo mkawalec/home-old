@@ -1,0 +1,42 @@
+#title {
+    margin-bottom: 20px;
+    font-size: 60px;
+    line-height: 70px;
+}
+
+.post {
+    background-color: #E5E5E5;
+    padding: 5px;
+    margin-bottom: 50px;
+}
+
+.post_title {
+    margin-bottom: 0px;
+    padding: 2px;
+
+    font-size: 45px;
+    line-height: 50px;
+    font-weight: bold;
+}
+
+.det {
+    font-style: italic;
+    float: left;
+    margin-right: 10px;
+}
+
+.tag {
+    float: left;
+    margin-right: 10px;
+    text-decoration: underline;
+}
+
+.tag_b {
+    font-weight: bold;
+    float: left;
+    margin-right: 10px;
+}
+
+.post_header {
+    margin-bottom: 40px;
+}

@@ -147,7 +147,24 @@ def login_required(f):
 
 @app.route('/')
 def home():
-    return render_template('home.html')
+    return redirect(url_for('blog', page=0))
+
+# A simple blog
+# 10 posts per page
+@app.route('/blog')
+@app.route('/blog/<int:page>')
+def blog(page=0):
+    posts = query_db('SELECT p.id,p.timestamp,p.edit_timestamp,p.title,'
+                     'p.contents,u.uname FROM blog_post p, users u '
+                     'WHERE u.id=p.author ORDER BY id DESC LIMIT 1 OFFSET %s',
+                     [page*10])
+    for post in posts:
+        post['tags'] = query_db('SELECT tag FROM post_tags WHERE post=%s',
+                                [post['id']])
+    print posts[0]['edit_timestamp']
+    print ''
+    return render_template('blog.html', posts=posts)
+
 
 @app.route('/piles')
 @login_required
@@ -192,31 +209,51 @@ def register():
         if request.form['passwd1'] != request.form['passwd2']:
             flash('The passwords are not the same', 'error')
             return render_template('register.html',uname=request.form['uname'],
-                                   email=request.form['email'])
+                                   email=request.form['email'],
+                                   first=randint(1,20),
+                                   second=randint(1,20))
 
         if len(request.form['passwd1']) == 0:
             flash('The passwords are empty', 'error')
             return render_template('register.html',uname=request.form['uname'],
-                                   email=request.form['email'])
+                                   email=request.form['email'],
+                                   first=randint(1,20),
+                                   second=randint(1,20))
 
         if len(request.form['email']) == 0:
             flash('The email is empty', 'error')
-            return render_template('register.html',uname=request.form['uname'])
+            return render_template('register.html',uname=request.form['uname'],
+                                   first=randint(1,20),
+                                   second=randint(1,20))
 
         if len(request.form['uname']) == 0:
             flash('User name is empty', 'error')
-            return render_template('register.html',email=request.form['email'])
+            return render_template('register.html',email=request.form['email'],
+                                   first=randint(1,20),
+                                   second=randint(1,20))
 
+        if int(request.form['first'])+int(request.form['second']) != int(request.form['result']):
+            flash('The result you entered is incorrect', 'error')
+            return render_template('register.html',uname=request.form['uname'],
+                                   email=request.form['email'],
+                                   first=randint(1,20),
+                                   second=randint(1,20))
+            
         if query_db('SELECT id FROM users WHERE email=%s',
                     [request.form['email']], one=True) is not None:
             flash('The email is already in use', 'error')
-            return render_template('register.html', uname=request.form['uname'])
+            return render_template('register.html', 
+                                   uname=request.form['uname'],
+                                   first=randint(1,20),
+                                   second=randint(1,20))
 
         if  query_db('SELECT id FROM users WHERE uname=%s',
                     [request.form['uname']], one=True) is not None:
             flash('The username already exists', 'error')
             return render_template('register.html',
-                                   email=request.form['email'])
+                                   email=request.form['email'],
+                                   first=randint(1,20),
+                                   second=randint(1,20))
 
         query_db('INSERT INTO users (uname,passwd,email,colour,file_quota) '
                  'VALUES (%s,%s,%s,%s,%s)',
@@ -226,7 +263,7 @@ def register():
         flash('Your account was created. Login to fine-tune your settings.', 
               'success')
         return redirect(url_for('settings'))
-    return render_template('register.html')
+    return render_template('register.html', first=randint(1,20), second=randint(1,20))
 
 @app.route('/logout')
 @login_required

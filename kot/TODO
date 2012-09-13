@@ -12,6 +12,9 @@
   of quota space taken by this file
 - Login/register should shake on validation errors (and be ajaxed)
 - Hashtag history
+- Make posts have images in them
+- Make posts have comments
+- Next/prev buttons on a blog
 
 Known bugs:
 - the 'drop files here' label on dropbox moves up/down with the files

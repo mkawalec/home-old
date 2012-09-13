@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block header %}
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/register.css') }}">
+<script type=text/javascript src="{{ url_for('static', filename='js/helpers.js') }}"></script>
+<script type=text/javascript src="{{ url_for('static', filename='js/register.js') }}"></script>
+{% endblock %}
+
+{% block body %}
+
+<form action="{{ url_for('register') }}" method=post>
+    <div id=register_background class="span4 offset3">
+        <div class=header>Register</div>
+        <input type=text name=uname class="input-xlarge" placeholder="Username" value="{{ uname }}" /><br />
+        <input type=text name=email class="input-xlarge" placeholder="Email" value="{{ email }}"/><br />
+        <input type=password name=passwd1 class="input-xlarge" placeholder="Password"/><br />
+        <input type=password name=passwd2 class="input-xlarge" placeholder="Password again" /><br />
+        <input type=text name=result class="input-xlarge" placeholder="How much is {{ first }} + {{ second }}?" /><br />
+        <input type=submit value="Register" class="btn btn-primary span2" id=submit />
+        <div id=pass_strength></div>
+    </div>
+    <input type=hidden name=next value="{{ next }}" />
+    <input type=hidden name=first value="{{ first }}" />
+    <input type=hidden name=second value="{{ second }}" />
+</form>
+
+{% endblock %}
