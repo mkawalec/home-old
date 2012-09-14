@@ -1030,7 +1030,7 @@ var calendar = {
         var location_header = document.createElement('div');
         $(location_header).attr('class', 'details_header');
         var location_body = document.createElement('div');
-        $(location_body).attr('class', 'details_body');
+        $(location_body).attr('class', 'details_body editable');
 
         $(location_body).attr('data-parent-id', 'location-' + i);
         $(location_body).attr('data-fieldname', 'location');
@@ -1060,7 +1060,7 @@ var calendar = {
         var description_header = document.createElement('div');
         $(description_header).attr('class', 'details_header');
         var description_body = document.createElement('div');
-        $(description_body).attr('class', 'details_body');
+        $(description_body).attr('class', 'details_body editable');
         $(description_header).text('Description:');
         $(description_body).text(attrs['description']);
         $(description_body).attr('data-parent-id', 'description-' + i);

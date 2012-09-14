@@ -150,7 +150,7 @@ div.btn-group       {
 }
 
 textarea.edit-field {
-    width: 180px;
+    width: 180px !important;
     margin-top: 5px;
 }
 
@@ -177,8 +177,13 @@ textarea.edit-field {
 .details_body {
     float: right;
     width: 120px;
+    min-height: 20px;
     display: block;
     text-align: right;
+}
+
+.details_body.editable {
+    cursor: pointer;
 }
 
 .event_name {
