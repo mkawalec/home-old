@@ -8,5 +8,5 @@ CREATE TABLE users (
     has_thumbnail boolean DEFAULT FALSE,
     avatar varchar UNIQUE,
     avatar_thumb varchar UNIQUE,
-    file_quota int8,
+    file_quota int8
 );

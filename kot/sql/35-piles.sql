@@ -3,8 +3,8 @@ CREATE TABLE piles (
     timestamp timestamp default now(),
     owner int REFERENCES users(id),
     member int REFERENCES users(id),
-    pile_num int REFERENCES pile_descs(id)
+    pile_num int REFERENCES pile_descs(id),
+    x real DEFAULT 0.5,
+    y real DEFAULT 0.5
 );
 
-ALTER TABLE piles ADD x real DEFAULT 0.5;
-ALTER TABLE piles ADD y real DEFAULT 0.5

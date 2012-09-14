@@ -1,8 +1,6 @@
 CREATE TABLE attendees (
     id SERIAL PRIMARY KEY,
     person int REFERENCES users(id),
-    event int REFERENCES events(id)
+    event int REFERENCES events(id),
+    timestamp timestamp DEFAULT now()
 );
-
-ALTER TABLE attendees ADD timestamp timestamp DEFAULT now();
-
