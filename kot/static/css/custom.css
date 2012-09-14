@@ -32,6 +32,4 @@ body {
     url('../font/fontawesome-webfont.woff') format('woff'),
     url('../font/fontawesome-webfont.ttf') format('truetype'),
     url('../font/fontawesome-webfont.svg#FontAwesome') format('svg');
-    font-weight: normal;
-    font-style: normal;
 }
