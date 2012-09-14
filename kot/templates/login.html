@@ -9,7 +9,7 @@
 <form action="{{ url_for('login') }}" method=post>
     <div id=login_background class="span4 offset3">
         <div class=header>Login</div>
-        <input type=text name=uname class="input-xlarge" placeholder="Username"/><br />
+        <input type=text name=uname class="input-xlarge" placeholder="Username" value="{{ uname }}"/><br />
         <input type=password name=passwd  class="input-xlarge" placeholder="Password" /><br />
     <input type=submit value="Login" class="btn btn-primary span2" id=submit />
     </div>

@@ -161,8 +161,6 @@ def blog(page=0):
     for post in posts:
         post['tags'] = query_db('SELECT tag FROM post_tags WHERE post=%s',
                                 [post['id']])
-    print posts[0]['edit_timestamp']
-    print ''
     return render_template('blog.html', posts=posts)
 
 
@@ -179,11 +177,15 @@ def piles():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    uname = ''
+
     if request.method == 'POST':
+        uname = request.form['uname']
         user = query_db('SELECT * FROM users WHERE uname=%s',
-                [request.form['uname']], one=True)
+                [uname], one=True)
         if user is None:
             flash('No such user.', 'error')
+            uname = ''
         elif user['passwd'] == (
                 sha256(request.form['passwd'] + 
                     app.config['SALT']).hexdigest()):
@@ -201,7 +203,7 @@ def login():
             flash('Wrong password.', 'error')
 
     next = None if not 'next' in request.args else request.args['next']
-    return render_template('login.html', next=next)
+    return render_template('login.html', next=next, uname=uname)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -273,7 +275,7 @@ def logout():
             del session['logged_in']
             del session['uname']
             del session['uid']
-            flash('Succesfully logged out', 'success')
+            flash('Successfully logged out', 'success')
 
             return redirect(url_for('home'))
 
@@ -337,7 +339,6 @@ def settings():
                           'FROM event_files f, events e, users u '
                           'WHERE u.id=%s AND f.uploaded_by=u.id AND '
                           'e.id=f.event',[session['uid']])
-    print user_files
 
     return render_template('settings.html', colours=colours, 
                            current=current, user_files=user_files)

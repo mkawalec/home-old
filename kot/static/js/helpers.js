@@ -19,7 +19,6 @@ status_notify = function(object, what) {
     border_color = $(object).css('border-color');
   } else {
     border_color = ((($(object).attr('style')).match(/border-color:(#[0-9A-F]{6})|(rgb\((\d+),\s*(\d+),\s*(\d+)\))/))[0].match(/#([0-9A-F]{6})|(rgb\((\d+),\s*(\d+),\s*(\d+)\))/))[0];
-    console.log(border_color);
   }
   switch (what) {
     case "success":
@@ -143,7 +142,6 @@ Date.prototype.format_nicely = function() {
 
 get_nice_size = function(file_size) {
   var app, _i, _len, _ref;
-  console.log(file_size);
   _ref = ['B', 'KB', 'MB', 'GB', 'TB'];
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
     app = _ref[_i];

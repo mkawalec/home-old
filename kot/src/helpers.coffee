@@ -15,7 +15,6 @@ status_notify = (object, what) ->
     else
         # A super-regex for matching any colour format (known to me)
         border_color = (((($(object).attr 'style').match /border-color:(#[0-9A-F]{6})|(rgb\((\d+),\s*(\d+),\s*(\d+)\))/)[0]).match /#([0-9A-F]{6})|(rgb\((\d+),\s*(\d+),\s*(\d+)\))/)[0]
-        console.log border_color
     
     switch what
         when "success"
@@ -110,7 +109,6 @@ Date::format_nicely = ->
 
 # Print a nice file size
 get_nice_size = (file_size) ->
-    console.log file_size
     for app in ['B', 'KB', 'MB', 'GB', 'TB']
         if file_size < 1024
             return file_size + app
