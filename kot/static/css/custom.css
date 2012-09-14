@@ -33,3 +33,7 @@ body {
     url('../font/fontawesome-webfont.ttf') format('truetype'),
     url('../font/fontawesome-webfont.svg#FontAwesome') format('svg');
 }
+
+.page {
+    margin-bottom: 100px;
+}
