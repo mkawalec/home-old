@@ -12,7 +12,9 @@
 {% endblock %}
 
 {% block body %}
-<div id=title>My awesome blog</div>
+<div id=header style="background-image:url('{{ url_for('static', filename='img/header1.jpg') }}');">
+    <div id=title>My awesome blog</div>
+</div>
 
 <div id=posts class="span8">
     {% for post in posts %}

@@ -1,7 +1,23 @@
+#header {
+    width: 920px;
+    height: 180px;
+
+    margin-bottom:20px;
+    margin-left: auto;
+    margin-right: auto;
+
+    position: relative;
+}
+
 #title {
-    margin-bottom: 20px;
     font-size: 60px;
     line-height: 70px;
+
+    position:absolute;
+    top: 55px;
+    left: 10px;
+
+    color: #EDF5EB;
 }
 
 .post {
@@ -40,3 +56,5 @@
 .post_header {
     margin-bottom: 40px;
 }
+
+

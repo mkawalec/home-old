@@ -2,6 +2,19 @@
 var bootstrap;
 
 bootstrap = function() {
+  /*
+      @header_pic_num = 2
+      pic = Math.floor(Math.random()*@header_pic_num)
+      header = $('#header')[0]
+      if pic == 0
+          pic = Math.floor(Math.random()*@header_pic_num)
+          
+      
+      style = ($(header).attr 'style').toString()
+      style_array = style.split '1'
+      style = style_array[0] + pic + style_array[1]
+      $(header).attr 'style', style
+  */
   $('pre').each(function(iter, el) {
     var html, lang, newline;
     html = $(el).html();
