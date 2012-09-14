@@ -156,7 +156,7 @@ def home():
 def blog(page=0):
     posts = query_db('SELECT p.id,p.timestamp,p.edit_timestamp,p.title,'
                      'p.contents,u.uname FROM blog_post p, users u '
-                     'WHERE u.id=p.author ORDER BY id DESC LIMIT 1 OFFSET %s',
+                     'WHERE u.id=p.author ORDER BY id DESC LIMIT 10 OFFSET %s',
                      [page*10])
     for post in posts:
         post['tags'] = query_db('SELECT tag FROM post_tags WHERE post=%s',

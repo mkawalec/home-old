@@ -379,7 +379,7 @@ get_quota_usage = ->
             progress_bar = $('#file_quota_progress div.bar')[0]
             percent_disp = $('#file_quota_progress div.percent_display')[0]
             progress = data.used/data.quota*100
-            if typeof progress != Number
+            if typeof progress != 'number'
                 $(percent_disp).text '0%'
             else
                 $(percent_disp).text "#{Math.round(progress)}%"
