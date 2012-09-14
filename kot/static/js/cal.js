@@ -841,7 +841,7 @@ var calendar = {
                         $(header_time).attr('class', 'header_time');
                         var header_name = document.createElement('div');
                         var header_name_inner = document.createElement('div');
-                        $(header_name).attr('class', 'header_name');
+                        $(header_name).attr('class', 'header_name editable');
                         $(header_name).attr('id', 'header_name_' + i);
                         $(header_name_inner).attr('id', 'header_name_inner_' + i);
                         
