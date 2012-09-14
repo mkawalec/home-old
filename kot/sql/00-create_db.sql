@@ -1,0 +1,1 @@
+CREATE DATABASE homepage ENCODING 'UTF8' TEMPLATE template0;
