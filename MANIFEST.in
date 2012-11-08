@@ -1,3 +1,0 @@
-recursive-include mama/templates *
-recursive-include mama/static *
-recursive-include mama/translations *
