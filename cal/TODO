@@ -1,11 +1,5 @@
-- Posty na gicie, pisane w markdownie!
-- automatyczne generowanie latexa
-- proces w CRONie, który sprawdza co jakiś czas czy coś się zmieniło i
-  wrzuca to, co się zmieniło do bazy danych. Można wymusić sync
-- gdy napisane przez interfejs, też wtedy wrzucane na gita? (jak zrobić
-  różnych autorów?)
-
 - Add attendees to be in the QR code.
+- And actually make the attendees work :D
 - After having hashtag history working in calendar, the event name on
   settings page should direct to an appropriate event in the calendar
 - hovering over an item on a filelist (in settings) shows the proportion
